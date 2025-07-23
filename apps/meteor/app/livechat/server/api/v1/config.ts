@@ -18,9 +18,9 @@ API.v1.addRoute(
 				return API.v1.success({ config: { enabled: false } });
 			}
 
-			const { token, department, businessUnit } = this.queryParams;
+			const { token, department, businessUnit, widgetId } = this.queryParams;
 
-			const config = await cachedSettings({ businessUnit });
+			const config = await cachedSettings({ businessUnit }, widgetId);
 
 			const status = Livechat.online(department);
 			const guest = token && (await Livechat.findGuest(token));

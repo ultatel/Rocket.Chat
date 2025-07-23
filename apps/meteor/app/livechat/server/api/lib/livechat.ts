@@ -132,11 +132,18 @@ export function normalizeHttpHeaderData(headers: Record<string, string | string[
 	return { httpHeaders };
 }
 
-export async function settings({ businessUnit = '' }: { businessUnit?: string } = {}): Promise<Record<string, string | number | any>> {
+export async function settings({ businessUnit = '' }: { businessUnit?: string } = {}, widgetId: string): Promise<Record<string, string | number | any>> {
 	// Putting this ugly conversion while we type the livechat service
 	const initSettings = Livechat.getInitSettings() as unknown as Record<string, string | number | any>;
 	const triggers = await findTriggers();
-	const departments = findDepartments(businessUnit);
+	const departments = await findDepartments(businessUnit);
+	console.log("🚀 ~ settings ~ widgetId:", widgetId, departments)
+	const department = departments.find(dep => dep._id === widgetId);
+
+	if (!department) {
+		throw new Meteor.Error('error-invalid-department', 'Invalid department');
+	}
+
 	const sound = `${Meteor.absoluteUrl()}sounds/chime.mp3`;
 	const emojis = await EmojiCustom.find().toArray();
 	return {
@@ -201,7 +208,7 @@ export async function settings({ businessUnit = '' }: { businessUnit?: string } 
 			values: ['1', '2', '3', '4', '5'],
 		},
 		triggers,
-		departments,
+		departments: [department],
 		resources: {
 			sound,
 			emojis,

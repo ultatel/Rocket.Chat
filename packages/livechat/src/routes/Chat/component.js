@@ -181,11 +181,12 @@ class Chat extends Component {
 						options ? (
 							<FooterOptions>
 								<Menu.Group>
-									{onChangeDepartment && (
+									{/* Ultatel: Remove change department option.*/}
+									{/* {onChangeDepartment && (
 										<Menu.Item onClick={onChangeDepartment} icon={ChangeIcon}>
 											{t('change_department')}
 										</Menu.Item>
-									)}
+									)} */}
 									{onRemoveUserData && (
 										<Menu.Item onClick={onRemoveUserData} icon={RemoveIcon}>
 											{t('forget_remove_my_data')}
