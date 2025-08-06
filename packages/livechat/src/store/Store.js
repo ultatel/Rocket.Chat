@@ -2,6 +2,7 @@ import mitt from 'mitt';
 
 import { parentCall } from '../lib/parentCall';
 import { createToken } from '../lib/random';
+import store from '.';
 
 const { localStorage, sessionStorage } = window;
 
@@ -45,7 +46,7 @@ export default class Store {
 
 		window.addEventListener('load', () => {
 			const sessionId = createToken();
-			sessionStorage.setItem('sessionId', sessionId);
+			sessionStorage.setItem(`${localStorageKey}-sessionId`, sessionId);
 			const { openSessionIds = [] } = this._state;
 			this.setState({ openSessionIds: [sessionId, ...openSessionIds] });
 		});
@@ -56,7 +57,7 @@ export default class Store {
 		});
 
 		window.addEventListener('beforeunload', () => {
-			const sessionId = sessionStorage.getItem('sessionId');
+			const sessionId = sessionStorage.getItem(`${localStorageKey}-sessionId`);
 			const { openSessionIds = [] } = this._state;
 			this.setState({ openSessionIds: openSessionIds.filter((session) => session !== sessionId) });
 		});
@@ -109,4 +110,9 @@ export default class Store {
 export const extractWidgetId = () => {
 		const params = new URLSearchParams(window.location.search);
 		return params.get('id');
+}
+
+
+export const getWidgetDepartmentId = () => {
+		return store.state.config.departments[0]?._id;
 }
