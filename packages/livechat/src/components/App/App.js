@@ -19,7 +19,7 @@ import Register from '../../routes/Register';
 import SwitchDepartment from '../../routes/SwitchDepartment';
 import TriggerMessage from '../../routes/TriggerMessage';
 import { store } from '../../store';
-import { visibility, isActiveSession, setInitCookies } from '../helpers';
+import { visibility, isActiveSession, setInitCookies, canRenderMessage } from '../helpers';
 
 function isRTL(s) {
 	const rtlChars = '\u0591-\u07FF\u200F\u202B\u202E\uFB1D-\uFDFD\uFE70-\uFEFC';
@@ -32,6 +32,23 @@ export class App extends Component {
 	state = {
 		initialized: false,
 		poppedOut: false,
+	};
+
+	// Ultatel: Add Reset Logic
+	resetUnreadObj = (clearAlerts = false) => {
+		try {
+			const renderedMessages = store._state.messages?.filter((message) => canRenderMessage(message));
+		const lastRenderedMessage = renderedMessages?.at(-1);
+		const resetOnject = 
+			{
+				unread: 0,
+				lastReadMessageId: lastRenderedMessage?._id,
+			}
+			return clearAlerts ? { ...resetOnject, alerts: [] } : resetOnject;
+		} catch (error) {
+			console.error('Error resetting unread object:', error);
+			return {}
+		}
 	};
 
 	handleRoute = async () => {
@@ -106,7 +123,13 @@ export class App extends Component {
 	handleRestore = () => {
 		parentCall('restoreWindow');
 		const { dispatch, undocked } = this.props;
-		const dispatchRestore = () => dispatch({ minimized: false, undocked: false });
+		// Ultatel: Reset unread relevent keys to mark chat as readed with opened
+		const dispatchRestore = () =>
+			dispatch({
+				minimized: false,
+				undocked: false,
+				...this.resetUnreadObj(true),
+			});
 		const dispatchEvent = () => {
 			dispatchRestore();
 			store.off('storageSynced', dispatchEvent);
@@ -132,7 +155,8 @@ export class App extends Component {
 
 	handleVisibilityChange = async () => {
 		const { dispatch } = this.props;
-		await dispatch({ visible: !visibility.hidden });
+		// Ultatel: Reset unread relevent keys to mark chat as readed with window visibility
+		await dispatch({ visible: !visibility.hidden, ...(!store._state.minimized ? this.resetUnreadObj() : {}) });
 	};
 
 	handleLanguageChange = () => {

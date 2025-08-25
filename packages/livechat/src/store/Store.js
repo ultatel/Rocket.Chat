@@ -2,6 +2,7 @@ import mitt from 'mitt';
 
 import { parentCall } from '../lib/parentCall';
 import { createToken } from '../lib/random';
+import store from '.';
 
 const { localStorage, sessionStorage } = window;
 
@@ -24,8 +25,11 @@ export default class Store {
 
 		this._state = { ...initialState, ...storedState };
 
+		this.setWidgetId();
+
 		window.addEventListener('storage', (e) => {
 			// Cross-tab communication
+			console.log('Storage event:', e.key);
 			if (e.key !== this.localStorageKey) {
 				return;
 			}
@@ -42,7 +46,7 @@ export default class Store {
 
 		window.addEventListener('load', () => {
 			const sessionId = createToken();
-			sessionStorage.setItem('sessionId', sessionId);
+			sessionStorage.setItem(`${localStorageKey}-sessionId`, sessionId);
 			const { openSessionIds = [] } = this._state;
 			this.setState({ openSessionIds: [sessionId, ...openSessionIds] });
 		});
@@ -53,7 +57,7 @@ export default class Store {
 		});
 
 		window.addEventListener('beforeunload', () => {
-			const sessionId = sessionStorage.getItem('sessionId');
+			const sessionId = sessionStorage.getItem(`${localStorageKey}-sessionId`);
 			const { openSessionIds = [] } = this._state;
 			this.setState({ openSessionIds: openSessionIds.filter((session) => session !== sessionId) });
 		});
@@ -72,6 +76,17 @@ export default class Store {
 	}
 
 	setState(partialState) {
+		// Ultatel: avoid redundant alerts
+		if(partialState.alerts && 
+			partialState.alerts.length && 
+			partialState.alerts.length > this._state.alerts.length) {
+			partialState.alerts = partialState.alerts.filter(alert => 
+				!this._state.alerts.some(existingAlert => existingAlert.children === alert.children )
+			);
+			if(partialState.alerts.length === 0) {
+				delete partialState.alerts;
+			}
+		}
 		const prevState = this._state;
 		this._state = { ...prevState, ...partialState };
 		this.persist();
@@ -96,4 +111,22 @@ export default class Store {
 		this._state = { ...storedState, ...nonPeristable };
 		this.emit('change', [this._state, prevState]);
 	}
+
+	// Get widget ID from URL parameters
+	setWidgetId() {
+		this.setState({ widgetId: extractWidgetId() });
+	}
 }
+
+export const extractWidgetId = () => {
+	const params = new URLSearchParams(window.location.search);
+	return params.get('id');
+};
+
+export const getWidgetDepartmentId = () => {
+	return store.state.config.departments[0]?._id;
+};
+
+export const getWidgetOfflineEmail = () => {
+	return store.state.config.settings.offlineEmail;
+};
