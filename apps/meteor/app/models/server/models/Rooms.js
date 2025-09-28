@@ -85,7 +85,8 @@ export class Rooms extends Base {
 	}
 
 	unsetReactionsInLastMessage(roomId) {
-		return this.update({ _id: roomId }, { $unset: { lastMessage: { reactions: 1 } } });
+		// Ultatel: Remove reactions from the last message instead of unsetting the whole lastMessage object
+    	return this.update({ _id: roomId }, { $unset: { 'lastMessage.reactions': 1 } });
 	}
 
 	unsetAllImportIds() {
