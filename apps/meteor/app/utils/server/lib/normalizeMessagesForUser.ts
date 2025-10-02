@@ -60,7 +60,7 @@ export const normalizeMessagesForUser = (messages: IMessage[], uid: string): IMe
 			return message;
 		}
     
-		message.u.name = getNameOfUsername(names, message.u.username);
+		message.u.name ??= getNameOfUsername(names, message.u.username);
 
 		(message.mentions || []).forEach((mention) => {
 			if (mention.username) {
