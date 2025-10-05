@@ -42,7 +42,7 @@ export function findPrivateGroupByIdOrName({ params, userId, checkedArchived = t
 		throw new Meteor.Error('error-room-not-found', 'The required "roomId" or "roomName" param provided does not match any group');
 	}
 
-	const user = Users.findOneById(userId, { fields: { username: 1 } });
+	const user = Users.findOneById(userId, { fields: { username: 1,roles:1 } });
 
 	if (!canAccessRoom(room, user)) {
 		throw new Meteor.Error('error-room-not-found', 'The required "roomId" or "roomName" param provided does not match any group');
