@@ -36,6 +36,8 @@ const Connection = {
 			this.clearAlerts();
 		} catch (e) {
 			console.error('Connecting error: ', e);
+		}finally{
+			await store.setState({ loading: false });
 		}
 	},
 
