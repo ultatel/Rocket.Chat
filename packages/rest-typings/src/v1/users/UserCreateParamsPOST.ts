@@ -20,6 +20,7 @@ export type UserCreateParamsPOST = {
 	sendWelcomeEmail?: boolean;
 	verified?: boolean;
 	customFields?: object;
+	avatarUrl?:  string;
 	/* @deprecated */
 	fields: string;
 };
@@ -43,6 +44,7 @@ const userCreateParamsPostSchema = {
 		verified: { type: 'boolean', nullable: true },
 		customFields: { type: 'object' },
 		fields: { type: 'string', nullable: true },
+		avatarUrl: { type: 'string' },
 	},
 	additionalProperties: false,
 	required: ['email', 'name', 'password', 'username'],

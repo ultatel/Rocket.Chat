@@ -91,6 +91,13 @@ API.v1.addRoute(
 				saveCustomFields(this.bodyParams.userId, this.bodyParams.data.customFields);
 			}
 
+			const { fields } = this.parseJsonQuery();
+			const user = Users.findOneById(this.bodyParams.userId, { fields });
+			// Ultatel: Add avatarUrl update
+			if (this.bodyParams.data.avatarUrl) {
+				setUserAvatar(user, this.bodyParams.data.avatarUrl, '', 'url');
+				user.avatarUrl = this.bodyParams.data.avatarUrl;
+			}
 			if (typeof this.bodyParams.data.active !== 'undefined') {
 				const {
 					userId,
@@ -100,9 +107,8 @@ API.v1.addRoute(
 
 				Meteor.call('setUserActiveStatus', userId, active, Boolean(confirmRelinquish));
 			}
-			const { fields } = this.parseJsonQuery();
 
-			return API.v1.success({ user: Users.findOneById(this.bodyParams.userId, { fields }) });
+			return API.v1.success({ user });
 		},
 	},
 );
@@ -266,10 +272,15 @@ API.v1.addRoute(
 			if (typeof this.bodyParams.active !== 'undefined') {
 				Meteor.call('setUserActiveStatus', newUserId, this.bodyParams.active);
 			}
-
 			const { fields } = this.parseJsonQuery();
+			const user = Users.findOneById(newUserId, { fields });
+			// Ultatel: Set avatarUrl if provided
+			if (this.bodyParams.avatarUrl) {
+				setUserAvatar(user, this.bodyParams.avatarUrl, '', 'url');
+				user.avatarUrl = this.bodyParams.avatarUrl;
+			}
 
-			return API.v1.success({ user: Users.findOneById(newUserId, { fields }) });
+			return API.v1.success({ user });
 		},
 	},
 );
