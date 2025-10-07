@@ -258,7 +258,6 @@ export class NotificationsModule {
 			} else if (e === 'typing') {
 				streamDeprecationLogger.warn(`The 'typing' event is deprecated and will be removed in the next major version of Rocket.Chat`);
 				streamRoom._emit(`${rid}/user-activity`, [username, _activity ? ['user-typing'] : [], extraData], this.connection, true);
-				streamRoom._emit(`${rid}/typing`, [username, _activity.includes('user-typing')], this.connection, true);
 			}
 
 			return true;
