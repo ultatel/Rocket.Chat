@@ -211,13 +211,10 @@ export class NotificationsModule {
 				if (!userId) {
 					return false;
 				}
-
-				// TODO consider using something to cache settings
-				const key = (await Settings.getValueById('UI_Use_Real_Name')) ? 'name' : 'username';
-
+				// Ultatel: Decouple Dependency on UI_Use_Real_Name Setting
 				const user = await Users.findOneById<Pick<IUser, 'name' | 'username'>>(userId, {
 					projection: {
-						[key]: 1,
+						'username': 1,
 					},
 				});
 
@@ -225,7 +222,7 @@ export class NotificationsModule {
 					return false;
 				}
 
-				return user[key] === username;
+				return user.username === username;
 			} catch (e) {
 				SystemLogger.error(e);
 				return false;
