@@ -154,8 +154,8 @@ export const createRoom = function <T extends RoomType>(
 			Subscriptions.createWithRoomAndUser(room, member, extra);
 		}
 	}
-
-	addUserRoles(owner._id, ['owner'], room._id);
+	// Ultatel: Await the promise to ensure roles are added before proceeding
+		Promise.await(addUserRoles(owner._id, ['owner'], room._id));
 
 	if (type === 'c') {
 		if (room.teamId) {
