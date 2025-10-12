@@ -18,6 +18,11 @@ async function canAccessPublicRoom(user?: Partial<IUser>): Promise<boolean> {
 }
 
 const roomAccessValidators: RoomAccessValidator[] = [
+	// Ultatel: Add this pre check to allow app role to access all rooms
+	async function _checkAppRole(_, user): Promise<boolean> {
+		return !!user?.roles?.includes('app');
+	},
+
 	async function _validateAccessToPublicRoomsInTeams(room, user): Promise<boolean> {
 		if (!room) {
 			return false;
