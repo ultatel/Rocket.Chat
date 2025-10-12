@@ -211,13 +211,10 @@ export class NotificationsModule {
 				if (!userId) {
 					return false;
 				}
-
-				// TODO consider using something to cache settings
-				const key = (await Settings.getValueById('UI_Use_Real_Name')) ? 'name' : 'username';
-
+				// Ultatel: Decouple Dependency on UI_Use_Real_Name Setting
 				const user = await Users.findOneById<Pick<IUser, 'name' | 'username'>>(userId, {
 					projection: {
-						[key]: 1,
+						'username': 1,
 					},
 				});
 
@@ -225,7 +222,7 @@ export class NotificationsModule {
 					return false;
 				}
 
-				return user[key] === username;
+				return user.username === username;
 			} catch (e) {
 				SystemLogger.error(e);
 				return false;
@@ -436,12 +433,14 @@ export class NotificationsModule {
 				// TODO: change this to serialize only once
 				const roomEvent = (...args: any[]): void => {
 					// TODO if receive a removed event could do => streamer.removeListener(rid, roomEvent);
-					const payload = streamer.changedPayload(streamer.subscriptionName, 'id', {
+					// Ultatel: Delay This Message (Backwords compatibility) 
+					setTimeout(()=>{
+						const payload = streamer.changedPayload(streamer.subscriptionName, 'id', {
 						eventName: `${userId}/rooms-changed`,
 						args,
 					});
-
 					payload && publication._session.socket?.send(payload);
+					},100)
 				};
 
 				const subscriptions = await Subscriptions.find<Pick<ISubscription, 'rid'>>(

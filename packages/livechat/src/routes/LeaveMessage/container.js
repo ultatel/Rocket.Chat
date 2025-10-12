@@ -4,9 +4,10 @@ import { Livechat } from '../../api';
 import { ModalManager } from '../../components/Modal';
 import { parseOfflineMessage } from '../../components/helpers';
 import { parentCall } from '../../lib/parentCall';
-import { createToken } from '../../lib/random';
+import { alertTimeOut, createToken } from '../../lib/random';
 import { Consumer } from '../../store';
 import LeaveMessage from './component';
+import { getWidgetDepartmentId, getWidgetOfflineEmail } from '../../store/Store';
 
 export class LeaveMessageContainer extends Component {
 	handleSubmit = async (fields) => {
@@ -15,19 +16,21 @@ export class LeaveMessageContainer extends Component {
 		await dispatch({ loading: true });
 		try {
 			const payload = parseOfflineMessage(fields);
-			const text = await Livechat.sendOfflineMessage(payload);
+			const text = await Livechat.sendOfflineMessage({
+				...payload,
+				department: getWidgetDepartmentId(),
+				widgetEmail: getWidgetOfflineEmail(),
+			});
 			await ModalManager.alert({
 				text: successMessage || text,
 			});
 			parentCall('callback', ['offline-form-submit', fields]);
 			return true;
 		} catch (error) {
-			const {
-				data: { message },
-			} = error;
-			console.error(message);
-			const alert = { id: createToken(), children: message, error: true, timeout: 5000 };
-			await dispatch({ alerts: (alerts.push(alert), alerts) });
+			const message = error?.data?.error ?? error.message;
+
+			const alert = { id: createToken(), children: message, error: true, timeout: alertTimeOut };
+			await dispatch({ alerts: [...alerts, alert] });
 			return false;
 		} finally {
 			await dispatch({ loading: false });

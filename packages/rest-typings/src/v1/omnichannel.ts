@@ -1504,6 +1504,7 @@ type GETLivechatConfigParams = {
 	token?: string;
 	department?: string;
 	businessUnit?: string;
+	widgetId: number;
 };
 
 const GETLivechatConfigParamsSchema = {
@@ -1520,6 +1521,10 @@ const GETLivechatConfigParamsSchema = {
 		businessUnit: {
 			type: 'string',
 			nullable: true,
+		},
+		widgetId: {
+			type: 'number',
+			nullable: false,
 		},
 	},
 	additionalProperties: false,
@@ -1661,6 +1666,7 @@ type POSTLivechatOfflineMessageParams = {
 	message: string;
 	department?: string;
 	host?: string;
+	widgetEmail: string;
 };
 
 const POSTLivechatOfflineMessageParamsSchema = {
@@ -1682,6 +1688,10 @@ const POSTLivechatOfflineMessageParamsSchema = {
 		host: {
 			type: 'string',
 			nullable: true,
+		},
+		widgetEmail: {
+			type: 'string',
+			nullable: false,
 		},
 	},
 	required: ['name', 'email', 'message'],

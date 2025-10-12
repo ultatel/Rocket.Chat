@@ -53,11 +53,15 @@ export const normalizeMessagesForUser = (messages: IMessage[], uid: string): IMe
 		names.set(user.username, user.name);
 	});
 
-	messages.forEach((message: IMessage) => {
+
+    // Ultatel: transfer for each to map 
+	return messages.map((message: IMessage) => {
 		if (!message.u) {
-			return;
+			return message;
 		}
-		message.u.name = getNameOfUsername(names, message.u.username);
+    
+		message.u.name ??= getNameOfUsername(names, message.u.username);
+
 
 		(message.mentions || []).forEach((mention) => {
 			if (mention.username) {
@@ -66,7 +70,7 @@ export const normalizeMessagesForUser = (messages: IMessage[], uid: string): IMe
 		});
 
 		if (!message.reactions) {
-			return messages;
+			return message;
 		}
 
 		message.reactions = Object.fromEntries(
@@ -75,7 +79,6 @@ export const normalizeMessagesForUser = (messages: IMessage[], uid: string): IMe
 				return [keys, reaction];
 			}),
 		);
+		return message;
 	});
-
-	return messages;
 };

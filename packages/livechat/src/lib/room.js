@@ -29,9 +29,16 @@ export const closeChat = async ({ transcriptRequested } = {}) => {
 		await store.setState(initial);
 	}
 
-	await loadConfig();
-	parentCall('callback', 'chat-ended');
-	route('/chat-finished');
+	try {
+		await loadConfig();
+		parentCall('callback', 'chat-ended');
+		route('/chat-finished');
+	} catch (error) {
+		// Ultatel: When Configuration in not available, reload the page
+		if (error?.message !== 'Failed to fetch') {
+			location.reload();
+		}
+	}
 };
 
 const getVideoConfMessageData = (message) =>

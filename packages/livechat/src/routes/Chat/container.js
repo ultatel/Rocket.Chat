@@ -9,10 +9,11 @@ import { normalizeQueueAlert } from '../../lib/api';
 import constants from '../../lib/constants';
 import { getLastReadMessage, loadConfig, processUnread, shouldMarkAsUnread } from '../../lib/main';
 import { parentCall, runCallbackEventEmitter } from '../../lib/parentCall';
-import { createToken } from '../../lib/random';
+import { alertTimeOut, createToken } from '../../lib/random';
 import { initRoom, closeChat, loadMessages, loadMoreMessages, defaultRoomParams, getGreetingMessages } from '../../lib/room';
 import { Consumer } from '../../store';
 import Chat from './component';
+import { getWidgetDepartmentId } from '../../store/Store';
 
 class ChatContainer extends Component {
 	state = {
@@ -51,12 +52,11 @@ class ChatContainer extends Component {
 
 	grantUser = async () => {
 		const { token, user, guest, dispatch } = this.props;
-
-		if (user) {
+		const visitor = { token, ...guest, department: getWidgetDepartmentId() };
+		if (user && visitor.department === user.department) {
 			return user;
 		}
 
-		const visitor = { token, ...guest };
 		const newUser = await Livechat.grantVisitor({ visitor });
 		await dispatch({ user: newUser });
 	};
@@ -79,16 +79,14 @@ class ChatContainer extends Component {
 			parentCall('callback', 'chat-started');
 			return newRoom;
 		} catch (error) {
-			const {
-				data: { error: reason },
-			} = error;
+			const reason = error?.data?.error ?? error.message;
 			const alert = {
 				id: createToken(),
 				children: i18n.t('error_starting_a_new_conversation_reason', { reason }),
 				error: true,
-				timeout: 10000,
+				timeout: alertTimeOut,
 			};
-			await dispatch({ loading: false, alerts: (alerts.push(alert), alerts) });
+			await dispatch({ loading: false, alerts: [...alerts, alert] });
 
 			runCallbackEventEmitter(reason);
 			throw error;
@@ -126,15 +124,19 @@ class ChatContainer extends Component {
 
 		await this.grantUser();
 		const { _id: rid } = await this.getRoom();
-		const { alerts, dispatch, token, user } = this.props;
+		const { token, user } = this.props;
 
 		try {
 			this.stopTypingDebounced.stop();
 			await Promise.all([this.stopTyping({ rid, username: user.username }), Livechat.sendMessage({ msg, token, rid })]);
 		} catch (error) {
+			const { alerts, dispatch } = this.props;
 			const reason = error?.data?.error ?? error.message;
-			const alert = { id: createToken(), children: reason, error: true, timeout: 5000 };
-			await dispatch({ alerts: (alerts.push(alert), alerts) });
+			if (!alerts.some((alert) => reason.startsWith("Error, too many requests.") && alert.children.startsWith('Error, too many requests.'))) {
+				const alert = { id: createToken(), children: reason, error: true, timeout: alertTimeOut };
+
+				await dispatch({ alerts: [...alerts, alert] });
+			}
 		}
 		await Livechat.notifyVisitorTyping(rid, user.username, false);
 	};
@@ -201,7 +203,7 @@ class ChatContainer extends Component {
 		} catch (error) {
 			console.error(error);
 			const alert = { id: createToken(), children: i18n.t('error_closing_chat'), error: true, timeout: 0 };
-			await dispatch({ alerts: (alerts.push(alert), alerts) });
+			await dispatch({ alerts: [...alerts, alert] });
 		} finally {
 			await dispatch({ loading: false });
 			await closeChat();
