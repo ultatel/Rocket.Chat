@@ -223,7 +223,7 @@ export class RocketChatIntegrationHandler {
 		} else {
 			message.channel = `#${tmpRoom._id}`;
 		}
-
+		
 		message = processWebhookMessage(message, user, defaultValues);
 		return message;
 	}
@@ -544,6 +544,8 @@ export class RocketChatIntegrationHandler {
 
 	getTriggersToExecute(room, message) {
 		const triggersToExecute = new Set();
+		// Ultatel: Ignore livechat rooms for outgoing webhooks
+		if(room.t === 'l') return [];
 		if (room) {
 			switch (room.t) {
 				case 'd':
