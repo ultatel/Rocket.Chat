@@ -547,6 +547,8 @@ export class RocketChatIntegrationHandler {
 		// Ultatel: Ignore livechat rooms for outgoing webhooks
 		if(room.t === 'l') return [];
 		if (room) {
+			// Ultatel: Ignore livechat rooms for outgoing webhooks
+			if(room.t === 'l') return [];
 			switch (room.t) {
 				case 'd':
 					if (this.triggers.all_direct_messages) {
