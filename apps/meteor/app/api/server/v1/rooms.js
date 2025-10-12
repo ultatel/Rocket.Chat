@@ -232,7 +232,7 @@ API.v1.addRoute(
 			const room = findRoomByIdOrName({ params: this.requestParams() });
 			const { fields } = this.parseJsonQuery();
 
-			if (!room || !canAccessRoom(room, { _id: this.userId })) {
+			if (!room || !canAccessRoom(room, { _id: this.userId, roles: this.user.roles  })) {
 				return API.v1.failure('not-allowed', 'Not Allowed');
 			}
 

@@ -2,7 +2,7 @@ import type { IRoom, IUser } from '@rocket.chat/core-typings';
 
 export type RoomAccessValidator = (
 	room: Pick<IRoom, '_id' | 't' | 'teamId' | 'prid'>,
-	user?: Pick<IUser, '_id'>,
+	user?: Pick<IUser, '_id'> & Partial<Pick<IUser, 'roles'>>,
 	extraData?: Record<string, any>,
 ) => Promise<boolean>;
 
