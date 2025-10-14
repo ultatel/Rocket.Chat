@@ -59,7 +59,7 @@ function _sendUserEmail(subject, html, userData) {
 	}
 }
 
-function validateUserData(userId, userData) {
+export const validateUserData = function(userId, userData)  {
 	const existingRoles = _.pluck(getRoles(), '_id');
 
 	if (userData._id && userId !== userData._id && !hasPermission(userId, 'edit-other-user-info')) {

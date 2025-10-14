@@ -1,5 +1,6 @@
 import {
 	isUserCreateParamsPOST,
+	isUserCreateParamsPOSTBulk,
 	isUserSetActiveStatusParamsPOST,
 	isUserDeactivateIdleParamsPOST,
 	isUsersInfoParamsGetProps,
@@ -13,6 +14,7 @@ import {
 	isUsersSetPreferencesParamsPOST,
 	isUsersCheckUsernameAvailabilityParamsGET,
 	isUsersSendConfirmationEmailParamsPOST,
+	UserCreateParamsPOST,
 } from '@rocket.chat/rest-typings';
 import { Meteor } from 'meteor/meteor';
 import { Accounts } from 'meteor/accounts-base';
@@ -33,6 +35,7 @@ import {
 	setStatusText,
 	setUserAvatar,
 	saveCustomFields,
+	validateEmailDomain,
 } from '../../../lib/server';
 import { getFullUserDataByIdOrUsername } from '../../../lib/server/functions/getFullUserData';
 import { API } from '../api';
@@ -45,6 +48,8 @@ import { isValidQuery } from '../lib/isValidQuery';
 import { getURL } from '../../../utils/server';
 import { getUploadFormData } from '../lib/getUploadFormData';
 import { api } from '../../../../server/sdk/api';
+import { getNewUserRoles } from '/server/services/user/lib/getNewUserRoles';
+import { validateUserData } from '/app/lib/server/functions/saveUser';
 
 API.v1.addRoute(
 	'users.getAvatar',
@@ -281,6 +286,68 @@ API.v1.addRoute(
 			}
 
 			return API.v1.success({ user });
+		},
+	},
+);
+
+// Ultatel: Add New Endpoint for Bulk user creation
+API.v1.addRoute(
+	'users.bulk-create',
+	{ authRequired: true, validateParams: isUserCreateParamsPOSTBulk },
+	{
+		async post() {
+			const users: UserCreateParamsPOST[] = this.bodyParams;
+			console.log(users);
+
+			const usersData = 
+				users.map( (user) => {
+					const userData: any = user;
+
+					 validateUserData(this.userId, userData);
+					 validateEmailDomain(userData.email);
+					if (userData.customFields) {
+						validateCustomFields(userData.customFields);
+					}
+					const roles = userData.roles || getNewUserRoles();
+					const isGuest = roles && roles.length === 1 && roles.includes('guest');
+
+
+					return {
+						_id: Random.id(),
+						...userData,
+						createdAt: new Date(),
+						joinDefaultChannels: typeof userData.joinDefaultChannels === 'undefined',
+						emails: userData.email ? [{ address: userData.email, verified: !!userData.verified }] : [],
+						roles,
+						isGuest,
+					};
+				});
+
+			const res = await Users.bulkInsert(usersData);
+			console.log({ res });
+			// // DB section
+			// const newUserId = saveUser(this.userId, this.bodyParams);
+
+			// Ignore
+			// if (this.bodyParams.customFields) {
+			// 	saveCustomFieldsWithoutValidation(newUserId, this.bodyParams.customFields);
+			// }
+
+			const { fields } = this.parseJsonQuery();
+			const usersRes = Users.find({ 'emails.address': { $in: usersData.map((user) => user.email) } }, { fields }).fetch();
+			console.log({ usersRes });
+			// for (const user of usersRes) {
+			// 	if (typeof user.active !== 'undefined') {
+			// 		Meteor.call('setUserActiveStatus', user._id, user.active);
+			// 	}
+			// }
+			// // Ultatel: Set avatarUrl if provided
+			// if (this.bodyParams.avatarUrl) {
+			// 	setUserAvatar(user, this.bodyParams.avatarUrl, '', 'url');
+			// 	user.avatarUrl = this.bodyParams.avatarUrl;
+			// }
+
+			return API.v1.success({ users: usersRes });
 		},
 	},
 );

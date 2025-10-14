@@ -51,3 +51,10 @@ const userCreateParamsPostSchema = {
 };
 
 export const isUserCreateParamsPOST = ajv.compile<UserCreateParamsPOST>(userCreateParamsPostSchema);
+
+
+
+export const isUserCreateParamsPOSTBulk = ajv.compile<UserCreateParamsPOST[]>( {
+	type: 'array',
+	items: userCreateParamsPostSchema,
+} );

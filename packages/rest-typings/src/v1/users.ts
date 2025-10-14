@@ -266,6 +266,12 @@ export type UsersEndpoints = {
 		};
 	};
 
+	'/v1/users.bulk-create': {
+		POST: (params: UserCreateParamsPOST[]) => {
+			users: IUser[];
+		};
+	};
+
 	'/v1/users.setActiveStatus': {
 		POST: (params: UserSetActiveStatusParamsPOST) => {
 			user: IUser;
