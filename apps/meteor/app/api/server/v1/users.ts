@@ -52,7 +52,7 @@ import { saveNewUser, validateUserData } from '/app/lib/server/functions/saveUse
 
 
 
-const limit = pLimit(5);
+const limit = pLimit(10);
 API.v1.addRoute(
 	'users.getAvatar',
 	{ authRequired: false },
