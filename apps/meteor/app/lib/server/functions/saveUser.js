@@ -262,7 +262,7 @@ const handleNickname = (updateUser, nickname) => {
 	}
 };
 
-const saveNewUser = function (userData, sendPassword) {
+export const saveNewUser = function (userData, sendPassword) {
 	validateEmailDomain(userData.email);
 
 	const roles = userData.roles || getNewUserRoles();

@@ -20,12 +20,12 @@ export type UserCreateParamsPOST = {
 	sendWelcomeEmail?: boolean;
 	verified?: boolean;
 	customFields?: object;
-	avatarUrl?:  string;
+	avatarUrl?: string;
 	/* @deprecated */
 	fields: string;
 };
 
-const userCreateParamsPostSchema = {
+export const userCreateParamsPostSchema = {
 	type: 'object',
 	properties: {
 		email: { type: 'string' },
@@ -53,8 +53,3 @@ const userCreateParamsPostSchema = {
 export const isUserCreateParamsPOST = ajv.compile<UserCreateParamsPOST>(userCreateParamsPostSchema);
 
 
-
-export const isUserCreateParamsPOSTBulk = ajv.compile<UserCreateParamsPOST[]>( {
-	type: 'array',
-	items: userCreateParamsPostSchema,
-} );

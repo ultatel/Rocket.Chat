@@ -14,7 +14,7 @@ import {
 	isUsersSetPreferencesParamsPOST,
 	isUsersCheckUsernameAvailabilityParamsGET,
 	isUsersSendConfirmationEmailParamsPOST,
-	UserCreateParamsPOST,
+	UserBulkCreateParamsPOST
 } from '@rocket.chat/rest-typings';
 import { Meteor } from 'meteor/meteor';
 import { Accounts } from 'meteor/accounts-base';
@@ -34,8 +34,7 @@ import {
 	checkUsernameAvailability,
 	setStatusText,
 	setUserAvatar,
-	saveCustomFields,
-	validateEmailDomain,
+	saveCustomFields
 } from '../../../lib/server';
 import { getFullUserDataByIdOrUsername } from '../../../lib/server/functions/getFullUserData';
 import { API } from '../api';
@@ -48,9 +47,12 @@ import { isValidQuery } from '../lib/isValidQuery';
 import { getURL } from '../../../utils/server';
 import { getUploadFormData } from '../lib/getUploadFormData';
 import { api } from '../../../../server/sdk/api';
-import { getNewUserRoles } from '/server/services/user/lib/getNewUserRoles';
-import { validateUserData } from '/app/lib/server/functions/saveUser';
+import pLimit from 'p-limit';
+import { saveNewUser, validateUserData } from '/app/lib/server/functions/saveUser';
 
+
+
+const limit = pLimit(10);
 API.v1.addRoute(
 	'users.getAvatar',
 	{ authRequired: false },
@@ -137,9 +139,9 @@ API.v1.addRoute(
 			const twoFactorOptions = !userData.typedPassword
 				? null
 				: {
-						twoFactorCode: userData.typedPassword,
-						twoFactorMethod: 'password',
-				  };
+					twoFactorCode: userData.typedPassword,
+					twoFactorMethod: 'password',
+				};
 
 			Meteor.call('saveUserProfile', userData, this.bodyParams.customFields, twoFactorOptions);
 
@@ -296,58 +298,55 @@ API.v1.addRoute(
 	{ authRequired: true, validateParams: isUserCreateParamsPOSTBulk },
 	{
 		async post() {
-			const users: UserCreateParamsPOST[] = this.bodyParams;
-			console.log(users);
+			const users: UserBulkCreateParamsPOST[] = this.bodyParams;
+			const createdUsers: any[] = [];
+			const errors: any[] = [];
 
-			const usersData = 
-				users.map( (user) => {
-					const userData: any = user;
+			const setActiveStatus = Meteor.bindEnvironment((userId: string, active: boolean) => {
+				Meteor.call('setUserActiveStatus', userId, active);
+			});
 
-					 validateUserData(this.userId, userData);
-					 validateEmailDomain(userData.email);
-					if (userData.customFields) {
-						validateCustomFields(userData.customFields);
+			const tasks = users.map((userData) =>
+				limit(async () => {
+					try {
+						const customFields = {
+							extension: userData.extension,
+							companyPrefix: userData.companyPrefix,
+							companyId: userData.companyId,
+							userId: userData.userId,
+						};
+						validateUserData(this.userId, userData);
+						const newUserId = saveNewUser(userData, false);
+
+						saveCustomFieldsWithoutValidation(newUserId, customFields);
+
+
+						if (typeof userData.active !== 'undefined') {
+							setActiveStatus(newUserId as string, userData.active);
+						}
+
+						const user = Users.findOneById(newUserId);
+
+						// Set avatar if provided
+						if (userData.avatarUrl) {
+							setUserAvatar(user, userData.avatarUrl, '', 'url');
+							user.avatarUrl = userData.avatarUrl;
+						}
+
+						createdUsers.push(user);
+					} catch (e: any) {
+						errors.push({
+							username: userData.username,
+							error: String(e?.reason || e?.message || e),
+						});
 					}
-					const roles = userData.roles || getNewUserRoles();
-					const isGuest = roles && roles.length === 1 && roles.includes('guest');
+				})
+			);
 
+			// Wait for all tasks to finish
+			await Promise.allSettled(tasks);
 
-					return {
-						_id: Random.id(),
-						...userData,
-						createdAt: new Date(),
-						joinDefaultChannels: typeof userData.joinDefaultChannels === 'undefined',
-						emails: userData.email ? [{ address: userData.email, verified: !!userData.verified }] : [],
-						roles,
-						isGuest,
-					};
-				});
-
-			const res = await Users.bulkInsert(usersData);
-			console.log({ res });
-			// // DB section
-			// const newUserId = saveUser(this.userId, this.bodyParams);
-
-			// Ignore
-			// if (this.bodyParams.customFields) {
-			// 	saveCustomFieldsWithoutValidation(newUserId, this.bodyParams.customFields);
-			// }
-
-			const { fields } = this.parseJsonQuery();
-			const usersRes = Users.find({ 'emails.address': { $in: usersData.map((user) => user.email) } }, { fields }).fetch();
-			console.log({ usersRes });
-			// for (const user of usersRes) {
-			// 	if (typeof user.active !== 'undefined') {
-			// 		Meteor.call('setUserActiveStatus', user._id, user.active);
-			// 	}
-			// }
-			// // Ultatel: Set avatarUrl if provided
-			// if (this.bodyParams.avatarUrl) {
-			// 	setUserAvatar(user, this.bodyParams.avatarUrl, '', 'url');
-			// 	user.avatarUrl = this.bodyParams.avatarUrl;
-			// }
-
-			return API.v1.success({ users: usersRes });
+			return API.v1.success({ users: createdUsers, errors });
 		},
 	},
 );
@@ -526,10 +525,10 @@ API.v1.addRoute(
 			const limit =
 				count !== 0
 					? [
-							{
-								$limit: count,
-							},
-					  ]
+						{
+							$limit: count,
+						},
+					]
 					: [];
 
 			const result = await UsersRaw.col

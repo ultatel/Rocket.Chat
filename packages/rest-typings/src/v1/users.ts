@@ -13,6 +13,7 @@ import type { UsersSetPreferencesParamsPOST } from './users/UsersSetPreferencePa
 import type { PaginatedRequest } from '../helpers/PaginatedRequest';
 import type { PaginatedResult } from '../helpers/PaginatedResult';
 import type { UsersSendConfirmationEmailParamsPOST } from '..';
+import type { UserBulkCreateParamsPOST } from './users/UserCreateBulkParamPOST';
 
 const ajv = new Ajv({
 	coerceTypes: true,
@@ -171,14 +172,14 @@ export type UsersEndpoints = {
 		POST: (
 			params:
 				| {
-						userId: string;
-				  }
+					userId: string;
+				}
 				| {
-						username: string;
-				  }
+					username: string;
+				}
 				| {
-						user: string;
-				  },
+					user: string;
+				},
 		) => void;
 	};
 
@@ -186,14 +187,14 @@ export type UsersEndpoints = {
 		POST: (
 			params:
 				| {
-						userId: string;
-				  }
+					userId: string;
+				}
 				| {
-						username: string;
-				  }
+					username: string;
+				}
 				| {
-						user: string;
-				  },
+					user: string;
+				},
 		) => void;
 	};
 
@@ -266,9 +267,11 @@ export type UsersEndpoints = {
 		};
 	};
 
+	// Ultatel: Bulk user creation
 	'/v1/users.bulk-create': {
-		POST: (params: UserCreateParamsPOST[]) => {
+		POST: (params: UserBulkCreateParamsPOST[]) => {
 			users: IUser[];
+			errors: any[]
 		};
 	};
 
@@ -288,14 +291,14 @@ export type UsersEndpoints = {
 		GET: (
 			params:
 				| {
-						userId: string;
-				  }
+					userId: string;
+				}
 				| {
-						username: string;
-				  }
+					username: string;
+				}
 				| {
-						user: string;
-				  },
+					user: string;
+				},
 		) => {
 			presence: 'online' | 'offline' | 'away' | 'busy';
 			connectionStatus?: 'online' | 'offline' | 'away' | 'busy';
