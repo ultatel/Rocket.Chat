@@ -1,5 +1,7 @@
+// Ultatel: Add bulk user create functionality
 import Ajv from 'ajv';
-import { UserCreateParamsPOST, userCreateParamsPostSchema } from "@rocket.chat/rest-typings/src/v1/users";
+import type { UserCreateParamsPOST } from './UserCreateParamsPOST';
+import {  userCreateParamsPostSchema } from './UserCreateParamsPOST';
 
 const ajv = new Ajv({
     coerceTypes: true,

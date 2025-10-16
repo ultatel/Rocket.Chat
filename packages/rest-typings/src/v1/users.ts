@@ -12,8 +12,9 @@ import type { UsersListTeamsParamsGET } from './users/UsersListTeamsParamsGET';
 import type { UsersSetPreferencesParamsPOST } from './users/UsersSetPreferenceParamsPOST';
 import type { PaginatedRequest } from '../helpers/PaginatedRequest';
 import type { PaginatedResult } from '../helpers/PaginatedResult';
-import type { UserBulkUpdateParamsPOST, UsersSendConfirmationEmailParamsPOST } from '..';
-import type { UserBulkCreateParamsPOST } from './users/UserCreateBulkParamPOST';
+import type { UsersSendConfirmationEmailParamsPOST } from '..';
+import type { UserBulkCreateParamsPOST } from './users/UserBulkCreateParamPOST';
+import type { UserBulkUpdateParamsPOST } from './users/UserBulkUpdateParamsPOST';
 
 const ajv = new Ajv({
 	coerceTypes: true,
@@ -267,7 +268,7 @@ export type UsersEndpoints = {
 		};
 	};
 
-	// Ultatel: Bulk user creation
+	// Ultatel: Add Bulk User creation
 	'/v1/users.bulk-create': {
 		POST: (params: UserBulkCreateParamsPOST[]) => {
 			users: IUser[];
@@ -275,7 +276,7 @@ export type UsersEndpoints = {
 		};
 	};
 
-	// Ultatel: Bulk user update By username
+	// Ultatel: Add Bulk User Update By Username
 	'/v1/users.bulk-update': {
 		POST: (params: UserBulkUpdateParamsPOST[]) => {
 			users: IUser[];
