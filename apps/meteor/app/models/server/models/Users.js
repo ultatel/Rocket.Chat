@@ -1537,11 +1537,6 @@ export class Users extends Base {
 		return this.insert(user);
 	}
 
-	bulkInsert(users) {
-		const collection = this.model.rawCollection();
-		return collection.insertMany(users);
-	}
-
 	// REMOVE
 	removeById(_id) {
 		return this.remove(_id);

@@ -20,6 +20,7 @@ export type UserCreateParamsPOST = {
 	sendWelcomeEmail?: boolean;
 	verified?: boolean;
 	customFields?: object;
+	// Ultatel: Add avatarUrl field
 	avatarUrl?: string;
 	/* @deprecated */
 	fields: string;
@@ -44,6 +45,7 @@ export const userCreateParamsPostSchema = {
 		verified: { type: 'boolean', nullable: true },
 		customFields: { type: 'object' },
 		fields: { type: 'string', nullable: true },
+		// Ultatel: Add avatarUrl field
 		avatarUrl: { type: 'string' },
 	},
 	additionalProperties: false,
@@ -51,5 +53,3 @@ export const userCreateParamsPostSchema = {
 };
 
 export const isUserCreateParamsPOST = ajv.compile<UserCreateParamsPOST>(userCreateParamsPostSchema);
-
-

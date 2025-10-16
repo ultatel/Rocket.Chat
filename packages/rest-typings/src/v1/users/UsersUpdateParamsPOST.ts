@@ -23,6 +23,7 @@ export type UsersUpdateParamsPOST = {
 		verified?: boolean;
 		customFields?: Record<string, unknown>;
 		status?: string;
+		// Ultatel: Add avatarUrl field
 		avatarUrl?: string;
 	};
 	confirmRelinquish?: boolean;
@@ -107,6 +108,7 @@ export const UsersUpdateParamsPostSchema = {
 					type: 'string',
 					nullable: true,
 				},
+				// Ultatel: Add avatarUrl field
 				avatarUrl: {
 					type: 'string',
 					nullable: true,
