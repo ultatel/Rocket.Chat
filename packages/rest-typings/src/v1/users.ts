@@ -12,7 +12,7 @@ import type { UsersListTeamsParamsGET } from './users/UsersListTeamsParamsGET';
 import type { UsersSetPreferencesParamsPOST } from './users/UsersSetPreferenceParamsPOST';
 import type { PaginatedRequest } from '../helpers/PaginatedRequest';
 import type { PaginatedResult } from '../helpers/PaginatedResult';
-import type { UsersSendConfirmationEmailParamsPOST } from '..';
+import type { UserBulkUpdateParamsPOST, UsersSendConfirmationEmailParamsPOST } from '..';
 import type { UserBulkCreateParamsPOST } from './users/UserCreateBulkParamPOST';
 
 const ajv = new Ajv({
@@ -172,14 +172,14 @@ export type UsersEndpoints = {
 		POST: (
 			params:
 				| {
-					userId: string;
-				}
+						userId: string;
+				  }
 				| {
-					username: string;
-				}
+						username: string;
+				  }
 				| {
-					user: string;
-				},
+						user: string;
+				  },
 		) => void;
 	};
 
@@ -187,14 +187,14 @@ export type UsersEndpoints = {
 		POST: (
 			params:
 				| {
-					userId: string;
-				}
+						userId: string;
+				  }
 				| {
-					username: string;
-				}
+						username: string;
+				  }
 				| {
-					user: string;
-				},
+						user: string;
+				  },
 		) => void;
 	};
 
@@ -271,7 +271,15 @@ export type UsersEndpoints = {
 	'/v1/users.bulk-create': {
 		POST: (params: UserBulkCreateParamsPOST[]) => {
 			users: IUser[];
-			errors: any[]
+			errors: any[];
+		};
+	};
+
+	// Ultatel: Bulk user update By username
+	'/v1/users.bulk-update': {
+		POST: (params: UserBulkUpdateParamsPOST[]) => {
+			users: IUser[];
+			errors: any[];
 		};
 	};
 
@@ -291,14 +299,14 @@ export type UsersEndpoints = {
 		GET: (
 			params:
 				| {
-					userId: string;
-				}
+						userId: string;
+				  }
 				| {
-					username: string;
-				}
+						username: string;
+				  }
 				| {
-					user: string;
-				},
+						user: string;
+				  },
 		) => {
 			presence: 'online' | 'offline' | 'away' | 'busy';
 			connectionStatus?: 'online' | 'offline' | 'away' | 'busy';
