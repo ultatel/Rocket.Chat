@@ -119,6 +119,7 @@ API.v1.addRoute(
 	},
 );
 
+// Ultatel: Add New Endpoint for Bulk user update
 API.v1.addRoute(
 	'users.bulk-update',
 	{ authRequired: true, validateParams: isUsersBulkUpdateParamsPOST },
@@ -127,41 +128,40 @@ API.v1.addRoute(
 			const usersToUpdate: UserBulkUpdateParamsPOST[] = this.bodyParams;
 			const updatedUsers: any[] = [];
 			const errors: any[] = [];
-
 			const limit = pLimit(5);
 
 			const usernamesToUpdate: string[] = usersToUpdate.map((u) => u.username);
 			const usersObjects = Users.find({ username: { $in: usernamesToUpdate } }, { fields: { _id: 1, username: 1 } }).fetch();
-			console.log('usersObjects', usersObjects);
-			const userIdByUsername = usersObjects.reduce((acc:Record<string, string>, user:{_id: string, username: string}) => {
+			const userIdByUsername = usersObjects.reduce((acc: Record<string, string>, user: { _id: string; username: string }) => {
 				acc[user.username] = user._id;
 				return acc;
-			}, {} );
+			}, {});
 
-			const saveUserBinding = Meteor.bindEnvironment((editorId: string, userData:any) => {
+			const saveUserBinding = Meteor.bindEnvironment((editorId: string, userData: any) => {
 				saveUser(editorId, userData);
 			});
 
-			const setActiveStatus = Meteor.bindEnvironment((userId: string, active: boolean) => {
+			const setActiveStatusBinding = Meteor.bindEnvironment((userId: string, active: boolean) => {
 				Meteor.call('setUserActiveStatus', userId, active);
 			});
 
-			 const setUserAvatarBinding = Meteor.bindEnvironment((user: any, avatarUrl: string, mime: string, service: string) => {
-                setUserAvatar(user, avatarUrl, mime, service);
-            });
+			const setUserAvatarBinding = Meteor.bindEnvironment((user: any, avatarUrl: string, mime: string, service: string) => {
+				setUserAvatar(user, avatarUrl, mime, service);
+			});
 
-			 const saveCustomFieldsBinding = Meteor.bindEnvironment((userId: string, customFields: any) => {
-                saveCustomFields(userId, customFields);
-            });
+			const saveCustomFieldsBinding = Meteor.bindEnvironment((userId: string, customFields: any) => {
+				saveCustomFields(userId, customFields);
+			});
+
 			const { fields } = this.parseJsonQuery();
 			const tasks = usersToUpdate.map((userToUpdate) =>
-				limit(async() => {
+				limit(async () => {
 					try {
 						const _id = userIdByUsername[userToUpdate.username];
 						if (!_id) {
 							throw new Error(`User with username ${userToUpdate.username} not found`);
 						}
-						const {extension, companyPrefix, companyId, userId, ...rest} = userToUpdate.data;
+						const { extension, companyPrefix, companyId, userId, ...rest } = userToUpdate.data;
 						const customFields = { extension, companyPrefix, companyId, userId };
 						const userData = { _id, ...rest };
 
@@ -169,7 +169,7 @@ API.v1.addRoute(
 						if (customFields) {
 							saveCustomFieldsBinding(_id, customFields);
 						}
-						
+
 						const user = Users.findOneById(_id, { fields });
 
 						if (rest.avatarUrl) {
@@ -177,11 +177,10 @@ API.v1.addRoute(
 							user.avatarUrl = rest.avatarUrl;
 						}
 						if (typeof rest.active !== 'undefined') {
-						setActiveStatus( _id, rest.active);
+							setActiveStatusBinding(_id, rest.active);
 						}
 						updatedUsers.push(user);
 					} catch (e: any) {
-						console.log(e)
 						errors.push({
 							username: userToUpdate.username,
 							error: String(e?.reason || e?.message || e),
@@ -190,7 +189,6 @@ API.v1.addRoute(
 				}),
 			);
 
-			// Wait for all tasks to finish
 			await Promise.all(tasks);
 
 			return API.v1.success({ users: updatedUsers, errors });
@@ -379,12 +377,12 @@ API.v1.addRoute(
 			const users: UserBulkCreateParamsPOST[] = this.bodyParams;
 			const createdUsers: any[] = [];
 			const errors: any[] = [];
+			const limit = pLimit(5);
 
-			const setActiveStatus = Meteor.bindEnvironment((userId: string, active: boolean) => {
+			const setActiveStatusBinding = Meteor.bindEnvironment((userId: string, active: boolean) => {
 				Meteor.call('setUserActiveStatus', userId, active);
 			});
 
-			const limit = pLimit(5);
 			const tasks = users.map((userData) =>
 				limit(async () => {
 					try {
@@ -400,7 +398,7 @@ API.v1.addRoute(
 						saveCustomFieldsWithoutValidation(newUserId, customFields);
 
 						if (typeof userData.active !== 'undefined') {
-							setActiveStatus(newUserId as string, userData.active);
+							setActiveStatusBinding(newUserId as string, userData.active);
 						}
 
 						const user = Users.findOneById(newUserId);
@@ -421,7 +419,6 @@ API.v1.addRoute(
 				}),
 			);
 
-			// Wait for all tasks to finish
 			await Promise.all(tasks);
 
 			return API.v1.success({ users: createdUsers, errors });
