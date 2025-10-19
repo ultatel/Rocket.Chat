@@ -141,10 +141,6 @@ API.v1.addRoute(
 				Meteor.call('setUserActiveStatus', userId, active);
 			});
 
-			const setUserAvatarBinding = Meteor.bindEnvironment((user: any, avatarUrl: string, mime: string, service: string) => {
-				setUserAvatar(user, avatarUrl, mime, service);
-			});
-
 			const saveCustomFieldsBinding = Meteor.bindEnvironment((userId: string, customFields: any) => {
 				saveCustomFields(userId, customFields);
 			});
@@ -157,8 +153,8 @@ API.v1.addRoute(
 						if (!_id) {
 							throw new Error(`User with username ${userToUpdate.username} not found`);
 						}
-						const { extension, companyPrefix, companyId, userId, ...rest } = userToUpdate.data;
-						const customFields = { extension, companyPrefix, companyId, userId };
+						const { extension, companyPrefix, companyId, userId, avatarUrl, ...rest } = userToUpdate.data;
+						const customFields = { extension, companyPrefix, companyId, userId, avatarUrl };
 						const userData = { _id, ...rest };
 
 						saveUserBinding(this.userId, userData);
@@ -378,6 +374,7 @@ API.v1.addRoute(
 							companyPrefix: userData.companyPrefix,
 							companyId: userData.companyId,
 							userId: userData.userId,
+							avatarUrl: userData.avatarUrl,
 						};
 						validateUserData(this.userId, userData);
 						const newUserId = saveNewUser(userData, false);
