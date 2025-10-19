@@ -99,11 +99,7 @@ API.v1.addRoute(
 
 			const { fields } = this.parseJsonQuery();
 			const user = Users.findOneById(this.bodyParams.userId, { fields });
-			// Ultatel: Add avatarUrl update
-			if (this.bodyParams.data.avatarUrl) {
-				setUserAvatar(user, this.bodyParams.data.avatarUrl, '', 'url');
-				user.avatarUrl = this.bodyParams.data.avatarUrl;
-			}
+
 			if (typeof this.bodyParams.data.active !== 'undefined') {
 				const {
 					userId,
@@ -172,10 +168,6 @@ API.v1.addRoute(
 
 						const user = Users.findOneById(_id, { fields });
 
-						if (rest.avatarUrl) {
-							setUserAvatarBinding(user, rest.avatarUrl, '', 'url');
-							user.avatarUrl = rest.avatarUrl;
-						}
 						if (typeof rest.active !== 'undefined') {
 							setActiveStatusBinding(_id, rest.active);
 						}
@@ -357,11 +349,6 @@ API.v1.addRoute(
 			}
 			const { fields } = this.parseJsonQuery();
 			const user = Users.findOneById(newUserId, { fields });
-			// Ultatel: Set avatarUrl if provided
-			if (this.bodyParams.avatarUrl) {
-				setUserAvatar(user, this.bodyParams.avatarUrl, '', 'url');
-				user.avatarUrl = this.bodyParams.avatarUrl;
-			}
 
 			return API.v1.success({ user });
 		},
@@ -402,12 +389,6 @@ API.v1.addRoute(
 						}
 
 						const user = Users.findOneById(newUserId);
-
-						// Set avatar if provided
-						if (userData.avatarUrl) {
-							setUserAvatar(user, userData.avatarUrl, '', 'url');
-							user.avatarUrl = userData.avatarUrl;
-						}
 
 						createdUsers.push(user);
 					} catch (e: any) {
