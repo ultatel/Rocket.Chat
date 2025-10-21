@@ -62,7 +62,6 @@ export const normalizeMessagesForUser = (messages: IMessage[], uid: string): IMe
     
 		message.u.name ??= getNameOfUsername(names, message.u.username);
 
-
 		(message.mentions || []).forEach((mention) => {
 			if (mention.username) {
 				mention.name = getNameOfUsername(names, mention.username);
