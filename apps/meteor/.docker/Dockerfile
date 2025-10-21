@@ -14,7 +14,13 @@ RUN groupadd -g 65533 -r rocketchat \
 ADD --chown=rocketchat:rocketchat . /app
 
 RUN aptMark="$(apt-mark showmanual)" \
-    && apt-get install -y --no-install-recommends g++ make python ca-certificates \
+    && apt-get update \
+    && apt-get install -y --no-install-recommends \
+       g++ \
+       make \
+       python3 \
+       ca-certificates \
+    && ln -s /usr/bin/python3 /usr/bin/python \
     && cd /app/bundle/programs/server \
     && npm install \
     && apt-mark auto '.*' > /dev/null \
@@ -27,6 +33,7 @@ RUN aptMark="$(apt-mark showmanual)" \
     | sort -u \
     | xargs -r apt-mark manual \
     && apt-get purge -y --auto-remove -o APT::AutoRemove::RecommendsImportant=false \
+    && rm -f /usr/bin/python \
     && npm cache clear --force
 
 USER rocketchat
