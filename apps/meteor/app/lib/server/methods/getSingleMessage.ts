@@ -2,10 +2,10 @@ import { Meteor } from 'meteor/meteor';
 import { check } from 'meteor/check';
 
 import { canAccessRoomId } from '../../../authorization/server';
-import { Messages } from '../../../models/server';
+import { Messages, Users } from '../../../models/server';
 
 Meteor.methods({
-	getSingleMessage(msgId) {
+	async getSingleMessage(msgId) {
 		check(msgId, String);
 
 		const uid = Meteor.userId();
@@ -19,8 +19,9 @@ Meteor.methods({
 		if (!msg || !msg.rid) {
 			return undefined;
 		}
-
-		if (!canAccessRoomId(msg.rid, uid)) {
+		// Ultatel: Send User Object Which Include roles 
+		const user = await Users.findOneById(uid);
+		if (!canAccessRoomId(msg.rid, user as any)) {
 			throw new Meteor.Error('error-not-allowed', 'Not allowed', { method: 'getSingleMessage' });
 		}
 

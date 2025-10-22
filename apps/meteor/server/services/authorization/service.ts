@@ -90,8 +90,9 @@ export class Authorization extends ServiceClass implements IAuthorization {
 		if (!room) {
 			return false;
 		}
-
-		return this.canAccessRoom(room, { _id: uid });
+				// Ultatel: Send User Object Which Include roles 
+		const user = await Users.findOneById(uid);
+		return this.canAccessRoom(room, user as any);
 	}
 
 	async addRoleRestrictions(role: IRole['_id'], permissions: string[]): Promise<void> {
