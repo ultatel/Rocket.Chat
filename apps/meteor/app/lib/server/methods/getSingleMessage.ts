@@ -19,9 +19,7 @@ Meteor.methods({
 		if (!msg || !msg.rid) {
 			return undefined;
 		}
-		// Ultatel: Send User Object Which Include roles 
-		const user = await Users.findOneById(uid);
-		if (!canAccessRoomId(msg.rid, user as any)) {
+		if (!canAccessRoomId(msg.rid, uid )) {
 			throw new Meteor.Error('error-not-allowed', 'Not allowed', { method: 'getSingleMessage' });
 		}
 
