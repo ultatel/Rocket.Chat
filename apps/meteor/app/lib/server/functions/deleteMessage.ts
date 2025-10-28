@@ -1,6 +1,6 @@
 import { Meteor } from 'meteor/meteor';
 import type { IMessage, IUser } from '@rocket.chat/core-typings';
-import { Uploads } from '@rocket.chat/models';
+import { Subscriptions, Uploads,ReadReceipts } from '@rocket.chat/models';
 
 import { FileUpload } from '../../../file-upload/server';
 import { settings } from '../../../settings/server';
@@ -15,7 +15,7 @@ export const deleteMessage = async function (message: IMessage, user: IUser): Pr
 	const keepHistory = settings.get('Message_KeepHistory') || isThread;
 	const showDeletedStatus = settings.get('Message_ShowDeletedStatus') || isThread;
 	const bridges = Apps?.isLoaded() && Apps.getBridges();
-
+	console.log('deleteMessage keepHistory', keepHistory, 'showDeletedStatus', showDeletedStatus, 'isThread', isThread);
 	if (deletedMsg && bridges) {
 		const prevent = Promise.await(bridges.getListenerBridge().messageEvent('IPreMessageDeletePrevent', deletedMsg));
 		if (prevent) {
@@ -62,6 +62,9 @@ export const deleteMessage = async function (message: IMessage, user: IUser): Pr
 	// decrease message count
 	Rooms.decreaseMessageCountById(message.rid, 1);
 
+	// Ultatel: Decrease unread count for subscriptions
+	await decreaseUnreadForMessage(message);
+
 	if (showDeletedStatus) {
 		Messages.setAsDeletedByIdAndUser(message._id, user);
 	} else {
@@ -71,4 +74,24 @@ export const deleteMessage = async function (message: IMessage, user: IUser): Pr
 	if (bridges) {
 		bridges.getListenerBridge().messageEvent('IPostMessageDeleted', deletedMsg, user);
 	}
+};
+
+const decreaseUnreadForMessage = async (message:IMessage) => {
+try {
+	const receipts = await ReadReceipts.findByMessageId(message._id).toArray();
+	const readUserIds = new Set<string>();
+	for (const r of receipts) {
+		if (r.userId) {
+			readUserIds.add(r.userId);
+		}
+	}
+	Subscriptions.update({ 
+		rid: message.rid,
+		"u_id": { $nin: Array.from(readUserIds) },
+		unread: { $gt: 0 }
+	}, { $inc: { unread: -1 } });
+
+} catch (error) {
+	console.error('Error in decreaseUnreadForMessage:', error);
+}
 };
