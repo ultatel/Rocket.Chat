@@ -15,7 +15,6 @@ export const deleteMessage = async function (message: IMessage, user: IUser): Pr
 	const keepHistory = settings.get('Message_KeepHistory') || isThread;
 	const showDeletedStatus = settings.get('Message_ShowDeletedStatus') || isThread;
 	const bridges = Apps?.isLoaded() && Apps.getBridges();
-	console.log('deleteMessage keepHistory', keepHistory, 'showDeletedStatus', showDeletedStatus, 'isThread', isThread);
 	if (deletedMsg && bridges) {
 		const prevent = Promise.await(bridges.getListenerBridge().messageEvent('IPreMessageDeletePrevent', deletedMsg));
 		if (prevent) {
