@@ -436,6 +436,106 @@ export class Rooms extends Base {
 
 		return this.find(query, options);
 	}
+	// Ultatel: Add a new method to fetch rooms with user details
+		findBySubscriptionUserIdDetails(userId, options) {
+			const data = Subscriptions.cachedFindByUserId(userId, { fields: { rid: 1 } })
+			.fetch()
+			.map((item) => item.rid);
+
+		const query = {
+			_id: {
+				$in: data,
+			},
+			$or: [
+				{
+					teamId: {
+						$exists: false,
+					},
+				},
+				{
+					teamId: {
+						$exists: true,
+					},
+					_id: {
+						$in: data,
+					},
+				},
+			],
+		};
+
+		   const pipeline = [
+                { $match: query },
+                {
+                    $lookup: {
+                        from: 'rocketchat_subscription',
+                        localField: '_id',
+                        foreignField: 'rid',
+                        as: 'subscriptions',
+                    },
+                },
+                {
+                    $addFields: {
+                        memberIds: {
+                            $cond: [
+                                { $and: [{ $eq: ['$t', 'd'] }, { $isArray: '$uids' }] },
+                                '$uids',
+                                {
+                                    $map: {
+                                        input: '$subscriptions',
+                                        as: 's',
+                                        in: '$$s.u._id',
+                                    },
+                                },
+                            ],
+                        },
+                    },
+                },
+                {
+                    $lookup: {
+                        from: 'users',
+                        localField: 'memberIds',
+                        foreignField: '_id',
+                        as: 'members',
+                    },
+                },
+                {
+                    $project: {
+                        ...options.fields,
+                        name: 1,
+                        t: 1,
+                        teamId: 1,
+                        lastMessage: 1,
+                        usernames: 1, 
+                        customFields: 1,
+						subscriptions: {
+							$filter: {
+								input: '$subscriptions',
+								as: 's',
+								cond: {
+									$and: [
+										{ $eq: ['$$s.u._id', userId] },
+									],
+								},
+							},
+						},
+                        members: {
+                            $map: {
+                                input: '$members',
+                                as: 'u',
+                                in: {
+                                    _id: '$$u._id',
+                                    username: '$$u.username',
+                                    name: '$$u.name',
+                                	customFields: '$$u.customFields',
+                                },
+                            },
+                        },
+                    },
+                },
+            ];
+
+            return Promise.await(this.model.rawCollection().aggregate(pipeline).toArray());
+	}
 
 	findBySubscriptionUserIdUpdatedAfter(userId, _updatedAt, options) {
 		const ids = Subscriptions.findByUserId(userId, { fields: { rid: 1 } })
