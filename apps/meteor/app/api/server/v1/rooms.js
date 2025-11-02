@@ -84,17 +84,6 @@ API.v1.addRoute(
 	{
 		async get() {
 			try {
-				const { updatedSince } = this.queryParams;
-
-				let updatedSinceDate;
-				if (updatedSince) {
-					if (isNaN(Date.parse(updatedSince))) {
-						throw new Meteor.Error('error-updatedSince-param-invalid', 'The "updatedSince" query parameter must be a valid date.');
-					} else {
-						updatedSinceDate = new Date(updatedSince);
-					}
-				}
-
 				let result;
 				Meteor.runAsUser(this.userId, () => {
 					result = Meteor.call('rooms/getDetails');
@@ -137,6 +126,8 @@ API.v1.addRoute(
 							room.unread = subscription.unread;
 							room.userMentions = subscription.userMentions;
 							room.groupMentions = subscription.groupMentions;
+							delete room.subscriptions;
+							delete room.members;
 							return [room];
 						}),
 						remove: [],
@@ -147,7 +138,6 @@ API.v1.addRoute(
 					data: result.update.map((room) => this.composeRoomWithLastMessage(room, this.userId)),
 				});
 			} catch (error) {
-				console.error('ehab Error fetching rooms:', error);
 				return API.v1.failure('Error fetching rooms');
 			}
 		},
