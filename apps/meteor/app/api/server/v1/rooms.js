@@ -91,13 +91,13 @@ API.v1.addRoute(
 
 				if (Array.isArray(result)) {
 					const allMemebers = result.reduce((acc, room) => {
-						if (room.t!='p') { return acc; }
-						return acc.concat( room.members || []);
+						if (room.t != 'p') { return acc; }
+						return acc.concat(room.members || []);
 					}, []);
 					const uniqueMembers = new Map(allMemebers.map((member) => [member._id, member]));
 					result = {
 						update: result.flatMap((room) => {
-							if (room.t == 'l' || room.usernames?.includes('rocket.cat')) return [];
+							if (room.usernames?.includes('rocket.cat')) return [];
 							const subscription = room.subscriptions?.[0] || {
 								unread: 0,
 								userMentions: 0,
@@ -116,8 +116,8 @@ API.v1.addRoute(
 								}
 							}
 
-							if(room.t == 'p' && room.lastMessage){
-								
+							if (room.t == 'p' && room.lastMessage) {
+
 								const lastMessage = room.lastMessage;
 								const lastMessageSender = uniqueMembers.get(lastMessage.u._id);
 								room.lastMessage.u.name = lastMessageSender?.name || lastMessage.u?.name;
@@ -299,7 +299,7 @@ API.v1.addRoute(
 			const room = findRoomByIdOrName({ params: this.requestParams() });
 			const { fields } = this.parseJsonQuery();
 
-			if (!room || !canAccessRoom(room, { _id: this.userId, roles: this.user.roles  })) {
+			if (!room || !canAccessRoom(room, { _id: this.userId, roles: this.user.roles })) {
 				return API.v1.failure('not-allowed', 'Not Allowed');
 			}
 
