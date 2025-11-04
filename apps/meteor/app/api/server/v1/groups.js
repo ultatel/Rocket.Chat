@@ -677,7 +677,7 @@ API.v1.addRoute(
 
 			const responseData = Object.entries(groupImageMap).map(([roomId, avatarUrls]) => ({
 				id: roomId,
-				groupMemberImages: avatarUrls.sort(),
+				groupMemberImages: avatarUrls.sort().slice(0,4),
 			}));
 
 			return API.v1.success({ data: responseData });
