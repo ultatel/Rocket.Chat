@@ -223,7 +223,7 @@ export class RocketChatIntegrationHandler {
 		} else {
 			message.channel = `#${tmpRoom._id}`;
 		}
-		
+
 		message = processWebhookMessage(message, user, defaultValues);
 		return message;
 	}
@@ -467,6 +467,17 @@ export class RocketChatIntegrationHandler {
 				data.text = message.msg;
 				data.siteUrl = settings.get('Site_Url');
 
+				// Ultatel: Add any additional data mapping here
+				const subscriptions = Models.Subscriptions.findByRoomId(room._id).fetch();
+				const usersIds = subscriptions.map((sub) => sub.u._id);
+				const members = Models.Users.findByIds(usersIds).fetch().filter((user) => user.active);
+				const sender = members.find((member) => member._id === message.u._id);
+				const membersIds = members.flatMap((user) => user._id == message.u._id? []:[Number(user.customFields?.userId)]);
+				data.mentions = message.mentions || [];
+				data.room_members = membersIds;
+				data.sender_name = sender?.name;
+				data.sender_avatarUrl = sender?.customFields?.avatarUrl;
+
 				if (message.alias) {
 					data.alias = message.alias;
 				}
@@ -546,7 +557,7 @@ export class RocketChatIntegrationHandler {
 		const triggersToExecute = new Set();
 		if (room) {
 			// Ultatel: Ignore livechat rooms for outgoing webhooks
-			if(room.t === 'l') return [];
+			if (room.t === 'l') return [];
 			switch (room.t) {
 				case 'd':
 					if (this.triggers.all_direct_messages) {
