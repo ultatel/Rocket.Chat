@@ -870,7 +870,7 @@ export const Livechat = {
 				username: agent.username,
 				name: agent.name,
 				email: null,
-				userId: agent.customFields?.userId,
+				userId: Number(agent.customFields?.userId) || null,
 				...(customFields && { customFields }),
 			};
 
