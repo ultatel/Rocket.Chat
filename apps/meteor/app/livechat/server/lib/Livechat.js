@@ -834,7 +834,8 @@ export const Livechat = {
 
 	async getLivechatRoomGuestInfo(room) {
 		const visitor = await LivechatVisitors.findOneById(room.v._id);
-		const agent = Users.findOneById(room.servedBy && room.servedBy._id);
+		// Ultatel: Get agent information
+		const agent = Users.findOneById(room.servedBy && room.servedBy._id,{ fields: { _id: 1, username: 1, name: 1, emails: 1, customFields: 1 } });
 
 		const ua = new UAParser();
 		ua.setUA(visitor.userAgent);
@@ -864,12 +865,12 @@ export const Livechat = {
 
 		if (agent) {
 			const customFields = parseAgentCustomFields(agent.customFields);
-
 			postData.agent = {
 				_id: agent._id,
 				username: agent.username,
 				name: agent.name,
 				email: null,
+				userId: agent.customFields?.userId,
 				...(customFields && { customFields }),
 			};
 
