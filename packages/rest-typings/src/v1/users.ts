@@ -13,6 +13,8 @@ import type { UsersSetPreferencesParamsPOST } from './users/UsersSetPreferencePa
 import type { PaginatedRequest } from '../helpers/PaginatedRequest';
 import type { PaginatedResult } from '../helpers/PaginatedResult';
 import type { UsersSendConfirmationEmailParamsPOST } from '..';
+import type { UserBulkCreateParamsPOST } from './users/UserBulkCreateParamPOST';
+import type { UserBulkUpdateParamsPOST } from './users/UserBulkUpdateParamsPOST';
 
 const ajv = new Ajv({
 	coerceTypes: true,
@@ -263,6 +265,22 @@ export type UsersEndpoints = {
 	'/v1/users.create': {
 		POST: (params: UserCreateParamsPOST) => {
 			user: IUser;
+		};
+	};
+
+	// Ultatel: Add Bulk User creation
+	'/v1/users.bulk-create': {
+		POST: (params: UserBulkCreateParamsPOST[]) => {
+			users: IUser[];
+			errors: any[];
+		};
+	};
+
+	// Ultatel: Add Bulk User Update By Username
+	'/v1/users.bulk-update': {
+		POST: (params: UserBulkUpdateParamsPOST[]) => {
+			users: IUser[];
+			errors: any[];
 		};
 	};
 
