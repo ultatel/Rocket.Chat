@@ -42,7 +42,7 @@ export function findPrivateGroupByIdOrName({ params, userId, checkedArchived = t
 		throw new Meteor.Error('error-room-not-found', 'The required "roomId" or "roomName" param provided does not match any group');
 	}
 
-	const user = Users.findOneById(userId, { fields: { username: 1,roles:1 } });
+	const user = Users.findOneById(userId, { fields: { username: 1, roles: 1 } });
 
 	if (!canAccessRoom(room, user)) {
 		throw new Meteor.Error('error-room-not-found', 'The required "roomId" or "roomName" param provided does not match any group');
@@ -305,6 +305,65 @@ API.v1.addRoute(
 
 			return API.v1.success({
 				group: this.composeRoomWithLastMessage(Rooms.findOneById(id.rid, { fields: API.v1.defaultFieldsToExclude }), this.userId),
+			});
+		},
+	},
+);
+
+// Ultatel: Find private group by members
+export  function findPrivateGroupByMembers({ members, userId }) {
+	const memberIds = new Set([...members.map((member) => member._id), userId]);
+	if (memberIds.size === 0) {
+		return null;
+	}
+
+	const userGroupIds = Subscriptions.findByUserIdAndType(this.userId, 'p', {
+		fields: { rid: 1 },
+	})
+		.fetch()
+		.map((subscription) => subscription.rid);
+
+	const groupMemberships = Subscriptions.findByRoomIds(userGroupIds, {
+		fields: { rid: 1, u: 1 },
+	}).fetch();
+
+	const membershipsByRoomId = groupMemberships.reduce((acc, membership) => {
+		if (!acc[membership.rid]) {
+			acc[membership.rid] = new Set();
+		}
+		acc[membership.rid].add(membership.u._id);
+		return acc;
+	}, {});
+
+	const [existingGroupId,existingGroupMemberIds] = Object.entries(membershipsByRoomId).find(
+		([roomId, memberSet]) => memberSet.size === memberIds.size && [...memberIds].every((memberId) => memberSet.has(memberId)),
+	)|| [null, null];
+
+	return existingGroupId ? Rooms.findOneById(existingGroupId) : null;
+}
+
+// Ultatel: Add New Endpoint to get private group by members
+API.v1.addRoute(
+	'groups.getByMembers',
+	{ authRequired: true },
+	{
+		 get() {
+			console.time('getUserListFromParams');
+			const members = this.getUserListFromParams();
+			console.timeEnd('getUserListFromParams');
+			console.time('findPrivateGroupByMembers');
+			const group =  findPrivateGroupByMembers({
+				members,
+				userId: this.userId,
+			});
+			console.timeEnd('findPrivateGroupByMembers');
+
+			if (!group) {
+				return API.v1.notFound('Group not found');
+			}
+
+			return API.v1.success({
+				group
 			});
 		},
 	},
