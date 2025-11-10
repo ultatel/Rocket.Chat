@@ -317,11 +317,9 @@ export  function findPrivateGroupByMembers({ members, userId }) {
 		return null;
 	}
 
-	const userGroupIds = Subscriptions.findByUserIdAndType(this.userId, 'p', {
+	const userGroupIds = Subscriptions.findByUserIdAndType(userId, 'p', {
 		fields: { rid: 1 },
-	})
-		.fetch()
-		.map((subscription) => subscription.rid);
+	}).fetch().map((subscription) => subscription.rid);
 
 	const groupMemberships = Subscriptions.findByRoomIds(userGroupIds, {
 		fields: { rid: 1, u: 1 },
@@ -348,15 +346,11 @@ API.v1.addRoute(
 	{ authRequired: true },
 	{
 		 get() {
-			console.time('getUserListFromParams');
 			const members = this.getUserListFromParams();
-			console.timeEnd('getUserListFromParams');
-			console.time('findPrivateGroupByMembers');
 			const group =  findPrivateGroupByMembers({
 				members,
 				userId: this.userId,
 			});
-			console.timeEnd('findPrivateGroupByMembers');
 
 			if (!group) {
 				return API.v1.notFound('Group not found');
