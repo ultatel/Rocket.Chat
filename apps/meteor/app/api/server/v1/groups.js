@@ -372,7 +372,7 @@ API.v1.addRoute(
 	{
 		async get() {
 			const { roomId } = this.queryParams;
-			const count = parseInt(this.queryParams.count) || 50;
+			const count = parseInt(this.queryParams.count) || 20;
 			const offset = parseInt(this.queryParams.offset) || 0;
 			const sort = this.queryParams.sort ? JSON.parse(this.queryParams.sort) : { ts: -1 };
 
