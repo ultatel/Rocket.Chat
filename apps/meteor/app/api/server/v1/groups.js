@@ -42,7 +42,7 @@ export function findPrivateGroupByIdOrName({ params, userId, checkedArchived = t
 		throw new Meteor.Error('error-room-not-found', 'The required "roomId" or "roomName" param provided does not match any group');
 	}
 
-	const user = Users.findOneById(userId, { fields: { username: 1,roles:1 } });
+	const user = Users.findOneById(userId, { fields: { username: 1, roles: 1 } });
 
 	if (!canAccessRoom(room, user)) {
 		throw new Meteor.Error('error-room-not-found', 'The required "roomId" or "roomName" param provided does not match any group');
@@ -704,10 +704,21 @@ API.v1.addRoute(
 			});
 
 			const [messages, total] = await Promise.all([cursor.toArray(), totalCount]);
+			// Ultatel: Format messages for user 
+			const formattedMessages = normalizeMessagesForUser(messages, this.userId, true).map((message) => ({
+				...message,
+				u: {
+					_id: message.u._id,
+					username: message.u.username,
+					name: message.u.name,
+					userExtension: message.u.customFields?.extension,
+					userImage: message.u.customFields?.avatarUrl,
+				},
+			}));
 
 			return API.v1.success({
-				messages: normalizeMessagesForUser(messages, this.userId),
-				count: messages.length,
+				messages: formattedMessages,
+				count: formattedMessages.length,
 				offset,
 				total,
 			});

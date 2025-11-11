@@ -12,12 +12,13 @@ const filterStarred = (message: IMessage, uid: string): IMessage => {
 };
 
 // TODO: we should let clients get user names on demand instead of doing this
-
-function getNameOfUsername(users: Map<string, string>, username: string): string {
-	return users.get(username) || username;
+// Ultatel: optimize user name retrieval
+function getNameOfUsername(users: Map<string, { name: string; customFields: any }>, username: string): string {
+	return users.get(username)?.name || username;
 }
 
-export const normalizeMessagesForUser = (messages: IMessage[], uid: string): IMessage[] => {
+// Ultatel: optimize message normalization for user
+export const normalizeMessagesForUser = (messages: IMessage[], uid: string, loadUserCustomFields: boolean = false): IMessage[] => {
 	// if not using real names, there is nothing else to do
 	if (!settings.get('UI_Use_Real_Name')) {
 		return messages.map((message) => filterStarred(message, uid));
@@ -47,21 +48,23 @@ export const normalizeMessagesForUser = (messages: IMessage[], uid: string): IMe
 			fields: {
 				username: 1,
 				name: 1,
+				customFields: 1,
 			},
-		}) as Pick<IUser, 'username' | 'name'>[]
+		}) as Pick<IUser, 'username' | 'name' | 'customFields'>[]
 	).forEach((user) => {
-		names.set(user.username, user.name);
+		names.set(user.username, { name: user.name, customFields: user.customFields });
 	});
 
-
-    // Ultatel: transfer for each to map 
+	// Ultatel: transfer for each to map
 	return messages.map((message: IMessage) => {
 		if (!message.u) {
 			return message;
 		}
-    
-		message.u.name ??= getNameOfUsername(names, message.u.username);
 
+		if (names.has(message.u.username)) message.u.name = getNameOfUsername(names, message.u.username);
+		if (loadUserCustomFields) {
+			message.u.customFields = names.get(message.u.username)?.customFields;
+		}
 
 		(message.mentions || []).forEach((mention) => {
 			if (mention.username) {
