@@ -554,6 +554,8 @@ API.v1.addRoute(
 			const nonEmptyFields = getNonEmptyFields(fields);
 
 			const inclusiveFields = getInclusiveFields(nonEmptyFields);
+			// Ultatel: Add Custom Fields to inclusive fields
+			inclusiveFields['customFields'] = 1;
 
 			const inclusiveFieldsKeys = Object.keys(inclusiveFields);
 
@@ -574,7 +576,6 @@ API.v1.addRoute(
 			}
 
 			const actualSort = sort?.name ? { nameInsensitive: sort.name, ...sort } : sort || { username: 1 };
-
 			const limit =
 				count !== 0
 					? [
@@ -620,10 +621,18 @@ API.v1.addRoute(
 				sortedResults: users,
 				totalCount: [{ total } = { total: 0 }],
 			} = result[0];
-
+			// Ultatel: Format user data
+			const formattedUsers = users.map((user) => {
+				return {
+					...user,
+					customFields: undefined,
+					userExtension: user.customFields?.extension || null,
+					userImage: user.customFields?.avatarUrl || null,
+				};
+			});
 			return API.v1.success({
-				users,
-				count: users.length,
+				users:formattedUsers,
+				count: formattedUsers.length,
 				offset,
 				total,
 			});
