@@ -549,7 +549,6 @@ API.v1.addRoute(
 
 			const { offset, count } = this.getPaginationItems();
 			const { sort, fields, query } = this.parseJsonQuery();
-
 			const nonEmptyQuery = getNonEmptyQuery(query, hasPermission(this.userId, 'view-full-other-user-info'));
 			const nonEmptyFields = getNonEmptyFields(fields);
 
@@ -568,6 +567,7 @@ API.v1.addRoute(
 						inclusiveFieldsKeys.includes('username') && 'username.*',
 						inclusiveFieldsKeys.includes('name') && 'name.*',
 						inclusiveFieldsKeys.includes('type') && 'type.*',
+						inclusiveFieldsKeys.includes('customFields') && 'customFields.userId.*',
 					].filter(Boolean) as string[],
 					this.queryOperations,
 				)
@@ -628,6 +628,7 @@ API.v1.addRoute(
 					customFields: undefined,
 					userExtension: user.customFields?.extension || null,
 					userImage: user.customFields?.avatarUrl || null,
+					email: user.emails?.[0]?.address || null,
 				};
 			});
 			return API.v1.success({
