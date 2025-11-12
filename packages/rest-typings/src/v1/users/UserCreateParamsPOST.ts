@@ -24,7 +24,7 @@ export type UserCreateParamsPOST = {
 	fields: string;
 };
 
-const userCreateParamsPostSchema = {
+export const userCreateParamsPostSchema = {
 	type: 'object',
 	properties: {
 		email: { type: 'string' },
