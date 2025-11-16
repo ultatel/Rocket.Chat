@@ -714,7 +714,6 @@ API.v1.addRoute(
 		},
 	},
 );
-
 // TODO: CACHE: same as channels.online
 API.v1.addRoute(
 	'groups.online',
