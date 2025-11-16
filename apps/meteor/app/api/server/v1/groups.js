@@ -715,39 +715,6 @@ API.v1.addRoute(
 	},
 );
 
-// Ultatel: Add Endpoint to get Group Image
-API.v1.addRoute(
-	'groups.image',
-	{ authRequired: true },
-	{
-		async get() {
-			const { roomId } = this.requestParams();
-			
-			const groupMemberIds = Subscriptions.findByRoomId(roomId, {
-				fields: { rid: 1, u: 1 },
-			}).fetch().map((subscription) => subscription.u._id);
-
-			
-			const userAvatarMap = new Map(
-				groupMemberIds.map((id) => [id, null])
-			);
-
-			Users.findByIds(Array.from(userAvatarMap.keys()), {
-				fields: { _id: 1, 'customFields.avatarUrl': 1 },
-			}).forEach((user) => {
-				if (user.customFields?.avatarUrl) {
-					userAvatarMap.set(user._id, user.customFields.avatarUrl);
-				}
-			});
-
-			return API.v1.success({ 
-				id: roomId,
-				groupImage: Array.from(userAvatarMap.values()).sort().slice(0, 4) || [],
-			});
-		},
-	},
-);
-
 // TODO: CACHE: same as channels.online
 API.v1.addRoute(
 	'groups.online',
