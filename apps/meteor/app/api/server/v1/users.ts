@@ -162,11 +162,12 @@ API.v1.addRoute(
 							saveCustomFieldsBinding(_id, customFields);
 						}
 
-						const user = Users.findOneById(_id, { fields });
-
+						
 						if (typeof rest.active !== 'undefined') {
 							setActiveStatusBinding(_id, rest.active);
 						}
+						
+						const user = Users.findOneById(_id, { fields });
 						updatedUsers.push(user);
 					} catch (e: any) {
 						errors.push({
