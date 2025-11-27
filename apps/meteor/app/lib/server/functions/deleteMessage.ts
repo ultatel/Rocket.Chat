@@ -86,7 +86,7 @@ try {
 	}
 	Subscriptions.update({ 
 		rid: message.rid,
-		"u_id": { $nin: Array.from(readUserIds) },
+		"u._id": { $nin: Array.from(readUserIds) },
 		unread: { $gt: 0 }
 	}, { $inc: { unread: -1 } });
 
