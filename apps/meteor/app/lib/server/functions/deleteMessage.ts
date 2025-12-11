@@ -88,7 +88,7 @@ try {
 		rid: message.rid,
 		"u._id": { $nin: Array.from(readUserIds) },
 		unread: { $gt: 0 }
-	}, { $inc: { unread: -1 } });
+	}, { $inc: { unread: -1 } },{ multi: true });
 
 } catch (error) {
 	console.error('Error in decreaseUnreadForMessage:', error);
