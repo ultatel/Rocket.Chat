@@ -1,5 +1,7 @@
 import {
 	isUserCreateParamsPOST,
+	isUserCreateParamsPOSTBulk,
+	isUsersBulkUpdateParamsPOST,
 	isUserSetActiveStatusParamsPOST,
 	isUserDeactivateIdleParamsPOST,
 	isUsersInfoParamsGetProps,
@@ -13,6 +15,8 @@ import {
 	isUsersSetPreferencesParamsPOST,
 	isUsersCheckUsernameAvailabilityParamsGET,
 	isUsersSendConfirmationEmailParamsPOST,
+	UserBulkCreateParamsPOST,
+	UserBulkUpdateParamsPOST,
 } from '@rocket.chat/rest-typings';
 import { Meteor } from 'meteor/meteor';
 import { Accounts } from 'meteor/accounts-base';
@@ -45,6 +49,8 @@ import { isValidQuery } from '../lib/isValidQuery';
 import { getURL } from '../../../utils/server';
 import { getUploadFormData } from '../lib/getUploadFormData';
 import { api } from '../../../../server/sdk/api';
+import pLimit from 'p-limit';
+import { saveNewUser, validateUserData } from '/app/lib/server/functions/saveUser';
 
 API.v1.addRoute(
 	'users.getAvatar',
@@ -91,6 +97,9 @@ API.v1.addRoute(
 				saveCustomFields(this.bodyParams.userId, this.bodyParams.data.customFields);
 			}
 
+			const { fields } = this.parseJsonQuery();
+			const user = Users.findOneById(this.bodyParams.userId, { fields });
+
 			if (typeof this.bodyParams.data.active !== 'undefined') {
 				const {
 					userId,
@@ -100,9 +109,78 @@ API.v1.addRoute(
 
 				Meteor.call('setUserActiveStatus', userId, active, Boolean(confirmRelinquish));
 			}
-			const { fields } = this.parseJsonQuery();
 
-			return API.v1.success({ user: Users.findOneById(this.bodyParams.userId, { fields }) });
+			return API.v1.success({ user });
+		},
+	},
+);
+
+// Ultatel: Add New Endpoint for Bulk user update
+API.v1.addRoute(
+	'users.bulk-update',
+	{ authRequired: true, validateParams: isUsersBulkUpdateParamsPOST },
+	{
+		async post() {
+			const usersToUpdate: UserBulkUpdateParamsPOST[] = this.bodyParams;
+			const updatedUsers: any[] = [];
+			const errors: any[] = [];
+			const limit = pLimit(5);
+
+			const usernamesToUpdate: string[] = usersToUpdate.map((u) => u.username);
+			const usersObjects = Users.find({ username: { $in: usernamesToUpdate } }, { fields: { _id: 1, username: 1 } }).fetch();
+			const userIdByUsername = usersObjects.reduce((acc: Record<string, string>, user: { _id: string; username: string }) => {
+				acc[user.username] = user._id;
+				return acc;
+			}, {});
+
+			const saveUserBinding = Meteor.bindEnvironment((editorId: string, userData: any) => {
+				saveUser(editorId, userData);
+			});
+
+			const setActiveStatusBinding = Meteor.bindEnvironment((userId: string, active: boolean) => {
+				Meteor.call('setUserActiveStatus', userId, active);
+			});
+
+			const saveCustomFieldsBinding = Meteor.bindEnvironment((userId: string, customFields: any) => {
+				saveCustomFields(userId, customFields);
+			});
+
+			const { fields } = this.parseJsonQuery();
+			const tasks = usersToUpdate.map((userToUpdate) =>
+				limit(async () => {
+					try {
+						const _id = userIdByUsername[userToUpdate.username];
+						if (!_id) {
+							throw new Error(`User with username ${userToUpdate.username} not found`);
+						}
+						const { extension, companyPrefix, companyId, userId, avatarUrl, ...rest } = userToUpdate.data;
+						const customFields = { extension, companyPrefix, companyId, userId, avatarUrl };
+						const userData = { _id, ...rest };
+
+						saveUserBinding(this.userId, userData);
+						if (customFields) {
+							saveCustomFieldsBinding(_id, customFields);
+						}
+
+						
+						if (typeof rest.active !== 'undefined') {
+							setActiveStatusBinding(_id, rest.active);
+						}
+						
+						const user = Users.findOneById(_id, { fields });
+						updatedUsers.push(user);
+					} catch (e: any) {
+						errors.push({
+							username: userToUpdate.username,
+							error: String(e?.reason || e?.message || e),
+						});
+					}
+				}),
+			);
+
+			await Promise.all(tasks);
+
+			return API.v1.success({ users: updatedUsers, errors });
 		},
 	},
 );
@@ -266,10 +344,63 @@ API.v1.addRoute(
 			if (typeof this.bodyParams.active !== 'undefined') {
 				Meteor.call('setUserActiveStatus', newUserId, this.bodyParams.active);
 			}
-
 			const { fields } = this.parseJsonQuery();
+			const user = Users.findOneById(newUserId, { fields });
 
-			return API.v1.success({ user: Users.findOneById(newUserId, { fields }) });
+			return API.v1.success({ user });
+		},
+	},
+);
+
+// Ultatel: Add New Endpoint for Bulk user creation
+API.v1.addRoute(
+	'users.bulk-create',
+	{ authRequired: true, validateParams: isUserCreateParamsPOSTBulk },
+	{
+		async post() {
+			const users: UserBulkCreateParamsPOST[] = this.bodyParams;
+			const createdUsers: any[] = [];
+			const errors: any[] = [];
+			const limit = pLimit(5);
+
+			const setActiveStatusBinding = Meteor.bindEnvironment((userId: string, active: boolean) => {
+				Meteor.call('setUserActiveStatus', userId, active);
+			});
+
+			const tasks = users.map((userData) =>
+				limit(async () => {
+					try {
+						const customFields = {
+							extension: userData.extension,
+							companyPrefix: userData.companyPrefix,
+							companyId: userData.companyId,
+							userId: userData.userId,
+							avatarUrl: userData.avatarUrl,
+						};
+						validateUserData(this.userId, userData);
+						const newUserId = saveNewUser(userData, false);
+
+						saveCustomFieldsWithoutValidation(newUserId, customFields);
+
+						if (typeof userData.active !== 'undefined') {
+							setActiveStatusBinding(newUserId as string, userData.active);
+						}
+
+						const user = Users.findOneById(newUserId);
+
+						createdUsers.push(user);
+					} catch (e: any) {
+						errors.push({
+							username: userData.username,
+							error: String(e?.reason || e?.message || e),
+						});
+					}
+				}),
+			);
+
+			await Promise.all(tasks);
+
+			return API.v1.success({ users: createdUsers, errors });
 		},
 	},
 );
