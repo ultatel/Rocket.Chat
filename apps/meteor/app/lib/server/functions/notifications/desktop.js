@@ -17,6 +17,10 @@ export function notifyDesktopUser({ userId, user, message, room, duration, notif
 	const { title, text } = roomCoordinator.getRoomDirectives(room.t)?.getNotificationDetails(room, user, notificationMessage, userId);
 
 	// Ultatel: Include attachment info in desktop notification payload
+	if( message.attachments && message.attachments.length > 0) {
+		message.attachment = message.attachments[0];
+	}
+
 	const payload = {
 		title,
 		text,
@@ -30,7 +34,7 @@ export function notifyDesktopUser({ userId, user, message, room, duration, notif
 			name: room.name,
 			message: {
 				msg: message.msg,
-				attachment: message.attachments[0] ?? null,
+				attachment: message.attachment,
 				t: message.t,
 			},
 		},
