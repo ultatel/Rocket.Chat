@@ -257,8 +257,8 @@ API.v1.addRoute(
 			const { offset, count } = this.getPaginationItems();
 			const { sort, fields, query } = this.parseJsonQuery();
 
-			// Ultatel: Filter out command messages
-			const ourQuery = { ...query, rid: findResult._id,t: { $nin: ['command'] } };
+			// Ultatel: Filter out these message types
+			const ourQuery = { ...query, rid: findResult._id,t: { $nin: ['command','livechat_navigation_history'] } };
 
 			// Special check for the permissions
 			if (
