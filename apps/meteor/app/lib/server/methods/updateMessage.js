@@ -78,7 +78,7 @@ Meteor.methods({
 		canSendMessage(message.rid, { uid: user._id, ...user });
 
 		// It is possible to have an empty array as the attachments property, so ensure both things exist
-		// Ultatel: Comment This block is to handle the case of editing description in attachment
+		// Ultatel: Comment This block is to handle the case of editing description in frist attachment
 		// if (originalMessage.attachments && originalMessage.attachments.length > 0 && originalMessage.attachments[0].description !== undefined) {
 		// 	message.attachments = originalMessage.attachments;
 		// 	message.attachments[0].description = message.msg;
