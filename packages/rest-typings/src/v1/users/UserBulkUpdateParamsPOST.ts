@@ -8,11 +8,12 @@ const ajv = new Ajv({ allErrors: true, strict: false });
 
 export type UserBulkUpdateParamsPOST = Omit<UsersUpdateParamsPOST, 'userId'> & {
 	username: string;
-	data: UsersUpdateParamsPOST['data'] & {
+	data: Omit<UsersUpdateParamsPOST['data'],'password'> & {
 		extension: string;
 		companyPrefix: string;
 		companyId: number;
 		userId: number;
+		avatarUrl: string;
 	};
 };
 
@@ -23,6 +24,7 @@ const userUpdateBulkPostSchema = {
 		properties: {
 			username: {
 				type: 'string',
+				nullable: false,
 			},
 			data: {
 				...UsersUpdateParamsPostSchema.properties.data,
@@ -32,6 +34,7 @@ const userUpdateBulkPostSchema = {
 					companyPrefix: { type: 'string', nullable: false },
 					companyId: { type: 'number', nullable: false },
 					userId: { type: 'number', nullable: false },
+					avatarUrl: { type: 'string', nullable: false },
 				},
 			},
 		},

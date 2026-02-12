@@ -1,7 +1,5 @@
 import {
 	isUserCreateParamsPOST,
-	isUserCreateParamsPOSTBulk,
-	isUsersBulkUpdateParamsPOST,
 	isUserSetActiveStatusParamsPOST,
 	isUserDeactivateIdleParamsPOST,
 	isUsersInfoParamsGetProps,
@@ -15,8 +13,6 @@ import {
 	isUsersSetPreferencesParamsPOST,
 	isUsersCheckUsernameAvailabilityParamsGET,
 	isUsersSendConfirmationEmailParamsPOST,
-	UserBulkCreateParamsPOST,
-	UserBulkUpdateParamsPOST,
 } from '@rocket.chat/rest-typings';
 import { Meteor } from 'meteor/meteor';
 import { Accounts } from 'meteor/accounts-base';
@@ -51,6 +47,8 @@ import { getUploadFormData } from '../lib/getUploadFormData';
 import { api } from '../../../../server/sdk/api';
 import pLimit from 'p-limit';
 import { saveNewUser, validateUserData } from '/app/lib/server/functions/saveUser';
+import { isUserCreateParamsPOSTBulk, UserBulkCreateParamsPOST } from '@rocket.chat/rest-typings/dist/v1/users/UserBulkCreateParamPOST';
+import { isUsersBulkUpdateParamsPOST, UserBulkUpdateParamsPOST } from '@rocket.chat/rest-typings/dist/v1/users/UserBulkUpdateParamsPOST';
 
 API.v1.addRoute(
 	'users.getAvatar',

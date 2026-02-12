@@ -47,10 +47,6 @@ export const UsersUpdateParamsPostSchema = {
 					type: 'string',
 					nullable: true,
 				},
-				password: {
-					type: 'string',
-					nullable: true,
-				},
 				username: {
 					type: 'string',
 					nullable: true,

@@ -12,6 +12,7 @@ export type UserBulkCreateParamsPOST = UserCreateParamsPOST & {
     companyPrefix: string;
     companyId: number;
     userId: number;
+    avatarUrl: string;
 };
 
 
@@ -25,6 +26,7 @@ const userCreateBulkPostSchema = {
             companyPrefix: { type: 'string', nullable: false },
             companyId: { type: 'number', nullable: false },
             userId: { type: 'number', nullable: false },
+            avatarUrl: { type: 'string', nullable: false },
         }
     },
 };
