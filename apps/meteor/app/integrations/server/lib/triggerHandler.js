@@ -467,6 +467,11 @@ export class RocketChatIntegrationHandler {
 				data.text = message.msg;
 				data.siteUrl = settings.get('Site_Url');
 
+				// Ultatel: Only add one of the attachments to notification to check whether there are attachments. + identify audio messages.
+				if (message.attachments && message.attachments.length > 0) {
+					data.attachment = message.attachments[0];
+				}
+
 				if (message.alias) {
 					data.alias = message.alias;
 				}
