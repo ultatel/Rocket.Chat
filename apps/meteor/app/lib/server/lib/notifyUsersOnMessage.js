@@ -5,6 +5,7 @@ import { Subscriptions as SubscriptionsRaw } from '@rocket.chat/models';
 import { Rooms, Subscriptions } from '../../../models/server';
 import { settings } from '../../../settings/server';
 import { callbacks } from '../../../../lib/callbacks';
+import { isCustomSystemMessage } from '/app/utils/server/functions/isCustomSystemMessage';
 
 /**
  * Chechs if a messages contains a user highlight
@@ -106,7 +107,7 @@ export async function updateUsersSubscriptions(message, room) {
 		}
 
 		// this shouldn't run only if has group mentions because it will already exclude mentioned users from the query
-		if (!toAll && !toHere && unreadCount === 'all_messages') {
+		if (!toAll && !toHere && unreadCount === 'all_messages' && !isCustomSystemMessage(message)) {
 			await SubscriptionsRaw.incUnreadForRoomIdExcludingUserIds(room._id, [...userIds, message.u._id]);
 		}
 	}
@@ -136,6 +137,7 @@ export function updateThreadUsersSubscriptions(message, room, replies) {
 
 export async function notifyUsersOnMessage(message, room) {
 	// skips this callback if the message was edited and increments it if the edit was way in the past (aka imported)
+	const isCustomSystemMessage = isCustomSystemMessage(message);
 	if (message.editedAt) {
 		if (Math.abs(moment(message.editedAt).diff()) > 60000) {
 			// TODO: Review as I am not sure how else to get around this as the incrementing of the msgs count shouldn't be in this callback
@@ -146,8 +148,9 @@ export async function notifyUsersOnMessage(message, room) {
 		// only updates last message if it was edited (skip rest of callback)
 		if (
 			settings.get('Store_Last_Message') &&
+			!isCustomSystemMessage &&
 			(!message.tmid || message.tshow) &&
-			(!room.lastMessage || room.lastMessage._id === message._id)
+			(!room.lastMessage || room.lastMessage._id === message._id) 
 		) {
 			Rooms.setLastMessageById(message.rid, message);
 		}
@@ -167,7 +170,7 @@ export async function notifyUsersOnMessage(message, room) {
 	}
 
 	// Update all the room activity tracker fields
-	Rooms.incMsgCountAndSetLastMessageById(message.rid, 1, message.ts, settings.get('Store_Last_Message') && message);
+	Rooms.incMsgCountAndSetLastMessageById(message.rid, 1, message.ts, settings.get('Store_Last_Message') && !isCustomSystemMessage && message);
 
 	await updateUsersSubscriptions(message, room);
 
