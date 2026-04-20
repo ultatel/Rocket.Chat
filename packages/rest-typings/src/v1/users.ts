@@ -12,7 +12,7 @@ import type { UsersListTeamsParamsGET } from './users/UsersListTeamsParamsGET';
 import type { UsersSetPreferencesParamsPOST } from './users/UsersSetPreferenceParamsPOST';
 import type { PaginatedRequest } from '../helpers/PaginatedRequest';
 import type { PaginatedResult } from '../helpers/PaginatedResult';
-import type { UsersSendConfirmationEmailParamsPOST } from '..';
+import type { UserCreateTempParamsPOST, UsersSendConfirmationEmailParamsPOST } from '..';
 import type { UserBulkCreateParamsPOST } from './users/UserBulkCreateParamPOST';
 import type { UserBulkUpdateParamsPOST } from './users/UserBulkUpdateParamsPOST';
 
@@ -268,6 +268,13 @@ export type UsersEndpoints = {
 		};
 	};
 
+	// Ultatel: Add Create Temp User
+	'/v1/users.createTemp': {
+		POST: (params: UserCreateTempParamsPOST) => {
+			user: IUser;
+		};
+	};
+
 	// Ultatel: Add Bulk User creation
 	'/v1/users.bulk-create': {
 		POST: (params: UserBulkCreateParamsPOST[]) => {
@@ -365,3 +372,4 @@ export * from './users/UserRegisterParamsPOST';
 export * from './users/UserLogoutParamsPOST';
 export * from './users/UsersListTeamsParamsGET';
 export * from './users/UsersAutocompleteParamsGET';
+export * from './users/UserCreateTempParamsPOST';
