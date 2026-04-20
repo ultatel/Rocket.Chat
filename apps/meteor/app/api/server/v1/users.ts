@@ -477,32 +477,23 @@ API.v1.addRoute(
 
 			const user = this.getUserFromParams();
 			
-			// Create system messages in all rooms before deleting
-			const subscriptions = Subscriptions.findByUserId(user._id).fetch();
-			subscriptions.forEach((subscription: any) => {
-				const room = Rooms.findOneById(subscription.rid);
-				if (room) {
-					const removerUser = Users.findOneById(this.userId, { fields: { _id: 1, username: 1 } });
-					const extraData = {
-						u: {
-							_id: removerUser._id,
-							username: removerUser.username,
-						},
-					};
-					
-					if (room.teamMain) {
-						Messages.createUserRemovedFromTeamWithRoomIdAndUser(subscription.rid, user, extraData);
-					} else {
-						Messages.createUserRemovedWithRoomIdAndUser(subscription.rid, user, extraData);
-					}
+		// Create system messages that user left all rooms before deleting
+		const subscriptions = Subscriptions.findByUserId(user._id).fetch();
+		subscriptions.forEach((subscription: any) => {
+			const room = Rooms.findOneById(subscription.rid);
+			if (room) {
+				if (room.teamMain) {
+					Messages.createUserLeaveTeamWithRoomIdAndUser(subscription.rid, user);
+				} else {
+					Messages.createUserLeaveWithRoomIdAndUser(subscription.rid, user);
 				}
-			});
-			
-			Meteor.call('deleteUser', user._id, false,true);
-
-			return API.v1.success();
-		},
+			}
+		});
+		
+		Meteor.call('deleteUser', user._id, false, true);
+		return API.v1.success();
 	},
+}
 );
 
 API.v1.addRoute(
