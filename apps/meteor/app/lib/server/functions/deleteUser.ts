@@ -13,7 +13,7 @@ import { getUserSingleOwnedRooms } from './getUserSingleOwnedRooms';
 import { api } from '../../../../server/sdk/api';
 import { LivechatUnitMonitors } from '../../../../ee/app/models/server';
 
-export async function deleteUser(userId: string, confirmRelinquish = false): Promise<void> {
+export async function deleteUser(userId: string, confirmRelinquish = false,keepMessage = false): Promise<void> {
 	const user = Users.findOneById(userId, {
 		fields: { username: 1, avatarOrigin: 1, federation: 1, roles: 1 },
 	});
@@ -41,7 +41,8 @@ export async function deleteUser(userId: string, confirmRelinquish = false): Pro
 	if (user.username != null) {
 		await relinquishRoomOwnerships(userId, subscribedRooms);
 
-		const messageErasureType = settings.get('Message_ErasureType');
+		const messageErasureType = keepMessage ? 'Keep' : settings.get('Message_ErasureType');
+		console.log(`bobobo Deleting user ${user.username} with message erasure type: ${messageErasureType}`);
 		switch (messageErasureType) {
 			case 'Delete':
 				const store = FileUpload.getStore('Uploads');

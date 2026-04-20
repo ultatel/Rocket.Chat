@@ -23,7 +23,7 @@ import type { IExportOperation, IPersonalAccessToken, IUser } from '@rocket.chat
 import { Users as UsersRaw } from '@rocket.chat/models';
 import type { Filter } from 'mongodb';
 
-import { Users, Subscriptions } from '../../../models/server';
+import { Users, Subscriptions, Rooms, Messages } from '../../../models/server';
 import { hasPermission } from '../../../authorization/server';
 import { settings } from '../../../settings/server';
 import {
@@ -459,6 +459,46 @@ API.v1.addRoute(
 			const { confirmRelinquish = false } = this.requestParams();
 
 			Meteor.call('deleteUser', user._id, confirmRelinquish);
+
+			return API.v1.success();
+		},
+	},
+);
+
+// Ultatel: Add New Endpoint To Delete Temp Users Without Remove Their Messages
+API.v1.addRoute(
+	'users.deleteTemp',
+	{ authRequired: true },
+	{
+		async post() {
+			if (!hasPermission(this.userId, 'delete-user')) {
+				return API.v1.unauthorized();
+			}
+
+			const user = this.getUserFromParams();
+			
+			// Create system messages in all rooms before deleting
+			const subscriptions = Subscriptions.findByUserId(user._id).fetch();
+			subscriptions.forEach((subscription: any) => {
+				const room = Rooms.findOneById(subscription.rid);
+				if (room) {
+					const removerUser = Users.findOneById(this.userId, { fields: { _id: 1, username: 1 } });
+					const extraData = {
+						u: {
+							_id: removerUser._id,
+							username: removerUser.username,
+						},
+					};
+					
+					if (room.teamMain) {
+						Messages.createUserRemovedFromTeamWithRoomIdAndUser(subscription.rid, user, extraData);
+					} else {
+						Messages.createUserRemovedWithRoomIdAndUser(subscription.rid, user, extraData);
+					}
+				}
+			});
+			
+			Meteor.call('deleteUser', user._id, false,true);
 
 			return API.v1.success();
 		},
