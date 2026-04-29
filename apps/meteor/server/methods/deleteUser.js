@@ -8,7 +8,7 @@ import { deleteUser } from '../../app/lib/server';
 import { AppEvents, Apps } from '../../app/apps/server/orchestrator';
 
 Meteor.methods({
-	async deleteUser(userId, confirmRelinquish = false) {
+	async deleteUser(userId, confirmRelinquish = false,keepMessage = false) {
 		check(userId, String);
 
 		if (!Meteor.userId()) {
@@ -47,7 +47,7 @@ Meteor.methods({
 			});
 		}
 
-		await deleteUser(userId, confirmRelinquish);
+		await deleteUser(userId, confirmRelinquish, keepMessage);
 
 		callbacks.run('afterDeleteUser', user);
 
