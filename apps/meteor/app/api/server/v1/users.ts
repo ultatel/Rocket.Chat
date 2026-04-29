@@ -13,6 +13,7 @@ import {
 	isUsersSetPreferencesParamsPOST,
 	isUsersCheckUsernameAvailabilityParamsGET,
 	isUsersSendConfirmationEmailParamsPOST,
+	isUserCreateTempParamsPOST,
 } from '@rocket.chat/rest-typings';
 import { Meteor } from 'meteor/meteor';
 import { Accounts } from 'meteor/accounts-base';
@@ -22,7 +23,7 @@ import type { IExportOperation, IPersonalAccessToken, IUser } from '@rocket.chat
 import { Users as UsersRaw } from '@rocket.chat/models';
 import type { Filter } from 'mongodb';
 
-import { Users, Subscriptions } from '../../../models/server';
+import { Users, Subscriptions, Rooms, Messages } from '../../../models/server';
 import { hasPermission } from '../../../authorization/server';
 import { settings } from '../../../settings/server';
 import {
@@ -324,7 +325,6 @@ API.v1.addRoute(
 	{ authRequired: true, validateParams: isUserCreateParamsPOST },
 	{
 		post() {
-			// New change made by pull request #5152
 			if (typeof this.bodyParams.joinDefaultChannels === 'undefined') {
 				this.bodyParams.joinDefaultChannels = true;
 			}
@@ -349,6 +349,49 @@ API.v1.addRoute(
 		},
 	},
 );
+
+
+// Ultatel: Add New Endpoint To Add Temp Rocket Chat Users
+API.v1.addRoute(
+	'users.createTemp',
+	{ authRequired: true, validateParams: isUserCreateTempParamsPOST },
+	{
+		post() {
+	
+			if (this.bodyParams.customFields) {
+				validateCustomFields(this.bodyParams.customFields);
+			}
+
+			const newUserId = saveUser(this.userId, {
+				email: "tempUser" + new Date().getTime() + "@temp.com",
+				username: "tempUser-" + new Date().getTime(),
+				joinDefaultChannels: false,
+				...this.bodyParams
+			});
+
+			if (this.bodyParams.customFields) {
+				saveCustomFieldsWithoutValidation(newUserId, this.bodyParams.customFields);
+			}
+
+			Meteor.call('setUserActiveStatus', newUserId, true);
+
+			const { fields } = this.parseJsonQuery();
+			const user = Users.findOneById(newUserId, { fields });
+			
+			// Generate login token for the temp user
+			const stampedToken = Accounts._generateStampedLoginToken();
+			Accounts._insertLoginToken(String(newUserId), stampedToken);
+			
+			return API.v1.success({ 
+				user, 
+				authToken: stampedToken.token,
+				userId: newUserId 
+			});
+		},
+	},
+);
+
+
 
 // Ultatel: Add New Endpoint for Bulk user creation
 API.v1.addRoute(
@@ -420,6 +463,37 @@ API.v1.addRoute(
 			return API.v1.success();
 		},
 	},
+);
+
+// Ultatel: Add New Endpoint To Delete Temp Users Without Remove Their Messages
+API.v1.addRoute(
+	'users.deleteTemp',
+	{ authRequired: true },
+	{
+		async post() {
+			if (!hasPermission(this.userId, 'delete-user')) {
+				return API.v1.unauthorized();
+			}
+
+			const user = this.getUserFromParams();
+			
+		// Create system messages that user left all rooms before deleting
+		const subscriptions = Subscriptions.findByUserId(user._id).fetch();
+		subscriptions.forEach((subscription: any) => {
+			const room = Rooms.findOneById(subscription.rid);
+			if (room) {
+				if (room.teamMain) {
+					Messages.createUserLeaveTeamWithRoomIdAndUser(subscription.rid, user);
+				} else {
+					Messages.createUserLeaveWithRoomIdAndUser(subscription.rid, user);
+				}
+			}
+		});
+		
+		Meteor.call('deleteUser', user._id, false, true);
+		return API.v1.success();
+	},
+}
 );
 
 API.v1.addRoute(
