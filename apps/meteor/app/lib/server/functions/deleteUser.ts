@@ -42,7 +42,6 @@ export async function deleteUser(userId: string, confirmRelinquish = false,keepM
 		await relinquishRoomOwnerships(userId, subscribedRooms);
 
 		const messageErasureType = keepMessage ? 'Keep' : settings.get('Message_ErasureType');
-		console.log(`bobobo Deleting user ${user.username} with message erasure type: ${messageErasureType}`);
 		switch (messageErasureType) {
 			case 'Delete':
 				const store = FileUpload.getStore('Uploads');
