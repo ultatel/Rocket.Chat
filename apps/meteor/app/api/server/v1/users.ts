@@ -477,23 +477,22 @@ API.v1.addRoute(
 
 			const user = this.getUserFromParams();
 			
-		// Create system messages that user left all rooms before deleting
-		const subscriptions = Subscriptions.findByUserId(user._id).fetch();
-		subscriptions.forEach((subscription: any) => {
-			const room = Rooms.findOneById(subscription.rid);
-			if (room) {
-				if (room.teamMain) {
-					Messages.createUserLeaveTeamWithRoomIdAndUser(subscription.rid, user);
-				} else {
-					Messages.createUserLeaveWithRoomIdAndUser(subscription.rid, user);
+			// Fetch the full user object with all necessary fields (username and name)
+			const fullUser = Users.findOneById(user._id, { fields: { _id: 1, username: 1, name: 1 } });
+			
+			// Create system messages that user left all rooms before deleting
+			const subscriptions = Subscriptions.findByUserId(fullUser._id).fetch();
+			subscriptions.forEach((subscription: any) => {
+				const room = Rooms.findOneById(subscription.rid);
+				if (room) {
+					Messages.createUserLeaveWithRoomIdAndUser(subscription.rid, fullUser);
 				}
-			}
-		});
-		
-		Meteor.call('deleteUser', user._id, false, true);
-		return API.v1.success();
+			});
+			
+			Meteor.call('deleteUser', fullUser._id, false, true);
+			return API.v1.success();
+		},
 	},
-}
 );
 
 API.v1.addRoute(
