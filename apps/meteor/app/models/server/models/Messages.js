@@ -898,6 +898,10 @@ export class Messages extends Base {
 
 	createUserAddedWithRoomIdAndUser(roomId, user, extraData) {
 		const message = user.username;
+		if(user.username.startsWith('tempUser-')) {
+			extraData = extraData || {};
+			extraData.addedUser = user.name
+		}
 		return this.createWithTypeRoomIdMessageAndUser('au', roomId, message, user, extraData);
 	}
 
