@@ -362,9 +362,17 @@ export type UsersEndpoints = {
 	'/v1/users.delete': {
 		POST: (params: { userId: IUser['_id']; confirmRelinquish?: boolean }) => void;
 	};
-
+	// Ultatel: Add Delete Temp User endpoint
 	'/v1/users.deleteTemp': {
 		POST: (params: { userId: IUser['_id'] }) => void;
+	};
+	// Ultatel: Add Delete Temp Users By Group endpoint
+	'/v1/users.deleteTempByGroup': {
+		POST: (params: { groupId: string }) => {
+			deletedCount: number;
+			totalTempUsers: number;
+			errors: any[];
+		};
 	};
 };
 
