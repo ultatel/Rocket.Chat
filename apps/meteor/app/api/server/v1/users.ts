@@ -48,6 +48,7 @@ import { getUploadFormData } from '../lib/getUploadFormData';
 import { api } from '../../../../server/sdk/api';
 import pLimit from 'p-limit';
 import { saveNewUser, validateUserData } from '/app/lib/server/functions/saveUser';
+import { TEMP_USER_PREFIX } from '../../../lib/constants';
 import { isUserCreateParamsPOSTBulk, UserBulkCreateParamsPOST } from '@rocket.chat/rest-typings/dist/v1/users/UserBulkCreateParamPOST';
 import { isUsersBulkUpdateParamsPOST, UserBulkUpdateParamsPOST } from '@rocket.chat/rest-typings/dist/v1/users/UserBulkUpdateParamsPOST';
 
@@ -363,8 +364,8 @@ API.v1.addRoute(
 			}
 
 			const newUserId = saveUser(this.userId, {
-				email: "tempUser" + new Date().getTime() + "@temp.com",
-				username: "tempUser-" + new Date().getTime(),
+				email: TEMP_USER_PREFIX.replace('-', '') + new Date().getTime() + "@temp.com",
+				username: TEMP_USER_PREFIX + new Date().getTime(),
 				joinDefaultChannels: false,
 				...this.bodyParams
 			});
@@ -490,6 +491,76 @@ API.v1.addRoute(
 		return API.v1.success();
 	},
 }
+);
+
+// Ultatel: Add New Endpoint To Delete All Temp Users In A Specific Group
+API.v1.addRoute(
+	'users.deleteTempByGroup',
+	{ authRequired: true },
+	{
+		async post() {
+			if (!hasPermission(this.userId, 'delete-user')) {
+				return API.v1.unauthorized();
+			}
+
+			const { groupId } = this.bodyParams;
+			if (!groupId) {
+				return API.v1.failure("The 'groupId' param is required");
+			}
+
+			// Verify the room exists
+			const room = Rooms.findOneById(groupId);
+			if (!room) {
+				return API.v1.failure('Room not found');
+			}
+
+			// Find all subscriptions in this room
+			const subscriptions = Subscriptions.findByRoomId(groupId).fetch();
+			
+			// Filter to only temp users
+			const tempUsers: any[] = [];
+			subscriptions.forEach((sub: any) => {
+				const user = Users.findOneById(sub.u._id);
+				if (user && user.username && user.username.startsWith(TEMP_USER_PREFIX)) {
+					tempUsers.push(user);
+				}
+			});
+
+			let deletedCount = 0;
+			const errors: any[] = [];
+
+			// Delete each temp user
+			for (const user of tempUsers) {
+				try {
+					// Create system messages that user left all rooms before deleting
+					const userSubscriptions = Subscriptions.findByUserId(user._id).fetch();
+					userSubscriptions.forEach((subscription: any) => {
+						const userRoom = Rooms.findOneById(subscription.rid);
+						if (userRoom) {
+							Messages.createUserLeaveWithRoomIdAndUser(subscription.rid, user, {
+								u: { _id: user._id, username: user.username, name: user.name }
+							});
+						}
+					});
+
+					Meteor.call('deleteUser', user._id, false, true);
+					deletedCount++;
+				} catch (e: any) {
+					errors.push({
+						userId: user._id,
+						username: user.username,
+						error: String(e?.reason || e?.message || e),
+					});
+				}
+			}
+
+			return API.v1.success({ 
+				deletedCount, 
+				totalTempUsers: tempUsers.length,
+				errors 
+			});
+		},
+	}
 );
 
 API.v1.addRoute(
