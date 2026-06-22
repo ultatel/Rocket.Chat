@@ -2,6 +2,7 @@ import { Subscriptions } from '@rocket.chat/models';
 
 import { ReadReceipt } from './lib/ReadReceipt';
 import { callbacks } from '../../../lib/callbacks';
+import { isCustomSystemMessage } from '../../../app/utils/server/functions/isCustomSystemMessage';
 
 callbacks.add(
 	'afterSaveMessage',
@@ -11,7 +12,8 @@ callbacks.add(
 			return message;
 		}
 
-		if (room && !room.closedAt) {
+		// Ultatel: prevent Reset Unread count for system message sender user
+		if (room && !isCustomSystemMessage(message) && !room.closedAt) {
 			// set subscription as read right after message was sent
 			Promise.await(Subscriptions.setAsReadByRoomIdAndUserId(room._id, message.u._id));
 		}

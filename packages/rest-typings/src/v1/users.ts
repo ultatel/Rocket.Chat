@@ -12,7 +12,9 @@ import type { UsersListTeamsParamsGET } from './users/UsersListTeamsParamsGET';
 import type { UsersSetPreferencesParamsPOST } from './users/UsersSetPreferenceParamsPOST';
 import type { PaginatedRequest } from '../helpers/PaginatedRequest';
 import type { PaginatedResult } from '../helpers/PaginatedResult';
-import type { UsersSendConfirmationEmailParamsPOST } from '..';
+import type { UserCreateTempParamsPOST, UsersSendConfirmationEmailParamsPOST } from '..';
+import type { UserBulkCreateParamsPOST } from './users/UserBulkCreateParamPOST';
+import type { UserBulkUpdateParamsPOST } from './users/UserBulkUpdateParamsPOST';
 
 const ajv = new Ajv({
 	coerceTypes: true,
@@ -266,6 +268,29 @@ export type UsersEndpoints = {
 		};
 	};
 
+	// Ultatel: Add Create Temp User
+	'/v1/users.createTemp': {
+		POST: (params: UserCreateTempParamsPOST) => {
+			user: IUser;
+		};
+	};
+
+	// Ultatel: Add Bulk User creation
+	'/v1/users.bulk-create': {
+		POST: (params: UserBulkCreateParamsPOST[]) => {
+			users: IUser[];
+			errors: any[];
+		};
+	};
+
+	// Ultatel: Add Bulk User Update By Username
+	'/v1/users.bulk-update': {
+		POST: (params: UserBulkUpdateParamsPOST[]) => {
+			users: IUser[];
+			errors: any[];
+		};
+	};
+
 	'/v1/users.setActiveStatus': {
 		POST: (params: UserSetActiveStatusParamsPOST) => {
 			user: IUser;
@@ -337,6 +362,18 @@ export type UsersEndpoints = {
 	'/v1/users.delete': {
 		POST: (params: { userId: IUser['_id']; confirmRelinquish?: boolean }) => void;
 	};
+	// Ultatel: Add Delete Temp User endpoint
+	'/v1/users.deleteTemp': {
+		POST: (params: { userId: IUser['_id'] }) => void;
+	};
+	// Ultatel: Add Delete Temp Users By Group endpoint
+	'/v1/users.deleteTempByGroup': {
+		POST: (params: { groupId: string }) => {
+			deletedCount: number;
+			totalTempUsers: number;
+			errors: any[];
+		};
+	};
 };
 
 export * from './users/UserCreateParamsPOST';
@@ -347,3 +384,4 @@ export * from './users/UserRegisterParamsPOST';
 export * from './users/UserLogoutParamsPOST';
 export * from './users/UsersListTeamsParamsGET';
 export * from './users/UsersAutocompleteParamsGET';
+export * from './users/UserCreateTempParamsPOST';

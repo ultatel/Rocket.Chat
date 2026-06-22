@@ -27,7 +27,7 @@ export type UsersUpdateParamsPOST = {
 	confirmRelinquish?: boolean;
 };
 
-const UsersUpdateParamsPostSchema = {
+export const UsersUpdateParamsPostSchema = {
 	type: 'object',
 	properties: {
 		userId: {
@@ -44,10 +44,6 @@ const UsersUpdateParamsPostSchema = {
 					nullable: true,
 				},
 				name: {
-					type: 'string',
-					nullable: true,
-				},
-				password: {
 					type: 'string',
 					nullable: true,
 				},

@@ -16,6 +16,7 @@ import { outgoingLogger } from '../logger';
 import { outgoingEvents } from '../../lib/outgoingEvents';
 import { fetch } from '../../../../server/lib/http/fetch';
 import { omit } from '../../../../lib/utils/omit';
+import { isCustomSystemMessage } from '/app/utils/server/functions/isCustomSystemMessage';
 
 export class RocketChatIntegrationHandler {
 	constructor() {
@@ -477,6 +478,11 @@ export class RocketChatIntegrationHandler {
 				data.room_members = membersIds;
 				data.sender_name = sender?.name;
 				data.sender_avatarUrl = sender?.customFields?.avatarUrl;
+        
+				// Ultatel: Only add one of the attachments to notification to check whether there are attachments. + identify audio messages.
+				if (message.attachments && message.attachments.length > 0) {
+					data.attachment = message.attachments[0];
+				}
 
 				if (message.alias) {
 					data.alias = message.alias;
@@ -556,8 +562,8 @@ export class RocketChatIntegrationHandler {
 	getTriggersToExecute(room, message) {
 		const triggersToExecute = new Set();
 		if (room) {
-			// Ultatel: Ignore livechat rooms for outgoing webhooks
-			if (room.t === 'l') return [];
+			// Ultatel: Ignore livechat rooms for outgoing webhooks & Ignore Meeting System Messages for outgoing webhooks, since they are not real messages and can cause confusion when sent to external services.
+			if(room.t === 'l'|| isCustomSystemMessage(message)) return [];
 			switch (room.t) {
 				case 'd':
 					if (this.triggers.all_direct_messages) {
