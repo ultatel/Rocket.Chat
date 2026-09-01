@@ -688,6 +688,57 @@ API.v1.addRoute(
 	},
 );
 
+
+
+
+API.v1.addRoute(
+	'groups.listAllImages',
+	{ authRequired: true },
+	{
+		async get() {
+			const userGroupIds = Subscriptions.cachedFindGroupsByUserId(this.userId, {
+				fields: { rid: 1 },
+			})
+				.fetch()
+				.map((subscription) => subscription.rid);
+
+			const groupMemberships = Subscriptions.findByRoomIds(userGroupIds, {
+				fields: { rid: 1, u: 1 },
+			}).fetch();
+
+			const userAvatarMap = new Map(
+				groupMemberships.map((membership) => [membership.u._id, null])
+			);
+
+			Users.findByIds(Array.from(userAvatarMap.keys()), {
+				fields: { _id: 1, 'customFields.avatarUrl': 1 },
+			}).forEach((user) => {
+				if (user.customFields?.avatarUrl) {
+					userAvatarMap.set(user._id, user.customFields.avatarUrl);
+				}
+			});
+
+			const groupImageMap = groupMemberships.reduce((acc, membership) => {
+				const { rid } = membership;
+				const avatarUrl = userAvatarMap.get(membership.u._id);
+
+				if (!acc[rid]) acc[rid] = [];
+				acc[rid].push(avatarUrl);
+
+				return acc;
+			}, {});
+
+			const responseData = Object.entries(groupImageMap).map(([roomId, avatarUrls]) => ({
+				id: roomId,
+				groupMemberImages: avatarUrls.sort().slice(0,4),
+			}));
+
+			return API.v1.success({ data: responseData });
+		},
+	},
+);
+
+
 API.v1.addRoute(
 	'groups.members',
 	{ authRequired: true },
