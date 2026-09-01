@@ -31,6 +31,8 @@ export function findUsersOfRoom({
 			avatarETag: 1,
 			_updatedAt: 1,
 			federated: 1,
+			// Ultatel: Add customFields to User Projection
+			customFields:1
 		},
 		sort: {
 			statusConnection: -1,
