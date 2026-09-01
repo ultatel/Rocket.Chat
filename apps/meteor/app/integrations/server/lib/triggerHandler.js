@@ -16,6 +16,7 @@ import { outgoingLogger } from '../logger';
 import { outgoingEvents } from '../../lib/outgoingEvents';
 import { fetch } from '../../../../server/lib/http/fetch';
 import { omit } from '../../../../lib/utils/omit';
+import { isCustomSystemMessage } from '/app/utils/server/functions/isCustomSystemMessage';
 
 export class RocketChatIntegrationHandler {
 	constructor() {
@@ -223,7 +224,7 @@ export class RocketChatIntegrationHandler {
 		} else {
 			message.channel = `#${tmpRoom._id}`;
 		}
-		
+
 		message = processWebhookMessage(message, user, defaultValues);
 		return message;
 	}
@@ -467,6 +468,17 @@ export class RocketChatIntegrationHandler {
 				data.text = message.msg;
 				data.siteUrl = settings.get('Site_Url');
 
+				// Ultatel: Add any additional data mapping here
+				const subscriptions = Models.Subscriptions.findByRoomId(room._id).fetch();
+				const usersIds = subscriptions.map((sub) => sub.u._id);
+				const members = Models.Users.findByIds(usersIds).fetch().filter((user) => user.active);
+				const sender = members.find((member) => member._id === message.u._id);
+				const membersIds = members.flatMap((user) => user._id == message.u._id? []:[Number(user.customFields?.userId)]);
+				data.mentions = message.mentions || [];
+				data.room_members = membersIds;
+				data.sender_name = sender?.name;
+				data.sender_avatarUrl = sender?.customFields?.avatarUrl;
+        
 				// Ultatel: Only add one of the attachments to notification to check whether there are attachments. + identify audio messages.
 				if (message.attachments && message.attachments.length > 0) {
 					data.attachment = message.attachments[0];
@@ -552,8 +564,8 @@ export class RocketChatIntegrationHandler {
 		// Ultatel: Ignore livechat rooms for outgoing webhooks
 		if(room.t === 'l') return [];
 		if (room) {
-			// Ultatel: Ignore livechat rooms for outgoing webhooks
-			if(room.t === 'l') return [];
+			// Ultatel: Ignore livechat rooms for outgoing webhooks & Ignore Meeting System Messages for outgoing webhooks, since they are not real messages and can cause confusion when sent to external services.
+			if(room.t === 'l'|| isCustomSystemMessage(message)) return [];
 			switch (room.t) {
 				case 'd':
 					if (this.triggers.all_direct_messages) {

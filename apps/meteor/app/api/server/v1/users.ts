@@ -13,6 +13,7 @@ import {
 	isUsersSetPreferencesParamsPOST,
 	isUsersCheckUsernameAvailabilityParamsGET,
 	isUsersSendConfirmationEmailParamsPOST,
+	isUserCreateTempParamsPOST,
 } from '@rocket.chat/rest-typings';
 import { Meteor } from 'meteor/meteor';
 import { Accounts } from 'meteor/accounts-base';
@@ -22,7 +23,7 @@ import type { IExportOperation, IPersonalAccessToken, IUser } from '@rocket.chat
 import { Users as UsersRaw } from '@rocket.chat/models';
 import type { Filter } from 'mongodb';
 
-import { Users, Subscriptions } from '../../../models/server';
+import { Users, Subscriptions, Rooms, Messages } from '../../../models/server';
 import { hasPermission } from '../../../authorization/server';
 import { settings } from '../../../settings/server';
 import {
@@ -47,6 +48,7 @@ import { getUploadFormData } from '../lib/getUploadFormData';
 import { api } from '../../../../server/sdk/api';
 import pLimit from 'p-limit';
 import { saveNewUser, validateUserData } from '/app/lib/server/functions/saveUser';
+import { TEMP_USER_PREFIX } from '../../../lib/constants';
 import { isUserCreateParamsPOSTBulk, UserBulkCreateParamsPOST } from '@rocket.chat/rest-typings/dist/v1/users/UserBulkCreateParamPOST';
 import { isUsersBulkUpdateParamsPOST, UserBulkUpdateParamsPOST } from '@rocket.chat/rest-typings/dist/v1/users/UserBulkUpdateParamsPOST';
 
@@ -324,7 +326,6 @@ API.v1.addRoute(
 	{ authRequired: true, validateParams: isUserCreateParamsPOST },
 	{
 		post() {
-			// New change made by pull request #5152
 			if (typeof this.bodyParams.joinDefaultChannels === 'undefined') {
 				this.bodyParams.joinDefaultChannels = true;
 			}
@@ -349,6 +350,49 @@ API.v1.addRoute(
 		},
 	},
 );
+
+
+// Ultatel: Add New Endpoint To Add Temp Rocket Chat Users
+API.v1.addRoute(
+	'users.createTemp',
+	{ authRequired: true, validateParams: isUserCreateTempParamsPOST },
+	{
+		post() {
+	
+			if (this.bodyParams.customFields) {
+				validateCustomFields(this.bodyParams.customFields);
+			}
+
+			const newUserId = saveUser(this.userId, {
+				email: TEMP_USER_PREFIX.replace('-', '') + new Date().getTime() + "@temp.com",
+				username: TEMP_USER_PREFIX + new Date().getTime(),
+				joinDefaultChannels: false,
+				...this.bodyParams
+			});
+
+			if (this.bodyParams.customFields) {
+				saveCustomFieldsWithoutValidation(newUserId, this.bodyParams.customFields);
+			}
+
+			Meteor.call('setUserActiveStatus', newUserId, true);
+
+			const { fields } = this.parseJsonQuery();
+			const user = Users.findOneById(newUserId, { fields });
+			
+			// Generate login token for the temp user
+			const stampedToken = Accounts._generateStampedLoginToken();
+			Accounts._insertLoginToken(String(newUserId), stampedToken);
+			
+			return API.v1.success({ 
+				user, 
+				authToken: stampedToken.token,
+				userId: newUserId 
+			});
+		},
+	},
+);
+
+
 
 // Ultatel: Add New Endpoint for Bulk user creation
 API.v1.addRoute(
@@ -420,6 +464,103 @@ API.v1.addRoute(
 			return API.v1.success();
 		},
 	},
+);
+
+// Ultatel: Add New Endpoint To Delete Temp Users Without Remove Their Messages
+API.v1.addRoute(
+	'users.deleteTemp',
+	{ authRequired: true },
+	{
+		async post() {
+			if (!hasPermission(this.userId, 'delete-user')) {
+				return API.v1.unauthorized();
+			}
+
+			const user = this.getUserFromParams();
+			
+		// Create system messages that user left all rooms before deleting
+		const subscriptions = Subscriptions.findByUserId(user._id).fetch();
+		subscriptions.forEach((subscription: any) => {
+			const room = Rooms.findOneById(subscription.rid);
+			if (room) {
+					Messages.createUserLeaveWithRoomIdAndUser(subscription.rid, user,{u:{_id:user._id,username:user.username,name:user.name}});
+			}
+		});
+		
+		Meteor.call('deleteUser', user._id, false, true);
+		return API.v1.success();
+	},
+}
+);
+
+// Ultatel: Add New Endpoint To Delete All Temp Users In A Specific Group
+API.v1.addRoute(
+	'users.deleteTempByGroup',
+	{ authRequired: true },
+	{
+		async post() {
+			if (!hasPermission(this.userId, 'delete-user')) {
+				return API.v1.unauthorized();
+			}
+
+			const { groupId } = this.bodyParams;
+			if (!groupId) {
+				return API.v1.failure("The 'groupId' param is required");
+			}
+
+			// Verify the room exists
+			const room = Rooms.findOneById(groupId);
+			if (!room) {
+				return API.v1.failure('Room not found');
+			}
+
+			// Find all subscriptions in this room
+			const subscriptions = Subscriptions.findByRoomId(groupId).fetch();
+			
+			// Filter to only temp users
+			const tempUsers: any[] = [];
+			subscriptions.forEach((sub: any) => {
+				const user = Users.findOneById(sub.u._id);
+				if (user && user.username && user.username.startsWith(TEMP_USER_PREFIX)) {
+					tempUsers.push(user);
+				}
+			});
+
+			let deletedCount = 0;
+			const errors: any[] = [];
+
+			// Delete each temp user
+			for (const user of tempUsers) {
+				try {
+					// Create system messages that user left all rooms before deleting
+					const userSubscriptions = Subscriptions.findByUserId(user._id).fetch();
+					userSubscriptions.forEach((subscription: any) => {
+						const userRoom = Rooms.findOneById(subscription.rid);
+						if (userRoom) {
+							Messages.createUserLeaveWithRoomIdAndUser(subscription.rid, user, {
+								u: { _id: user._id, username: user.username, name: user.name }
+							});
+						}
+					});
+
+					Meteor.call('deleteUser', user._id, false, true);
+					deletedCount++;
+				} catch (e: any) {
+					errors.push({
+						userId: user._id,
+						username: user.username,
+						error: String(e?.reason || e?.message || e),
+					});
+				}
+			}
+
+			return API.v1.success({ 
+				deletedCount, 
+				totalTempUsers: tempUsers.length,
+				errors 
+			});
+		},
+	}
 );
 
 API.v1.addRoute(
