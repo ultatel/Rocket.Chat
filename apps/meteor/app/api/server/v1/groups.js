@@ -418,6 +418,68 @@ API.v1.addRoute(
 	},
 );
 
+// Ultatel: Add Endpoint to get group attachments
+API.v1.addRoute(
+	'groups.attachments',
+	{ authRequired: true },
+	{
+		async get() {
+			const { roomId } = this.queryParams;
+			const count = parseInt(this.queryParams.count) || 20;
+			const offset = parseInt(this.queryParams.offset) || 0;
+			const sort = this.queryParams.sort ? JSON.parse(this.queryParams.sort) : { ts: -1 };
+
+			if (!roomId) {
+				return API.v1.failure('The required "roomId" query param is missing.');
+			}
+
+			const room = Rooms.findOneById(roomId);
+			if (!room) {
+				return API.v1.failure('Room not found');
+			}
+
+			if (!canAccessRoom(room, this.user)) {
+				return API.v1.unauthorized();
+			}
+
+			const pipeline = [
+				{
+					$match: { rid: roomId, $and: [{ attachments: { $exists: true } }, { attachments: { $ne: null } }, { attachments: { $ne: [] } }], 'attachments.title_link': { $exists: true, $ne: null }, },
+				},
+				{ $sort: sort },
+				{ $unwind: '$attachments' },
+				{
+					$project: {
+						_id: 0,
+						messageId: '$_id',
+						attachment: '$attachments',
+						name: '$u.name',
+						timestamp: '$ts',
+						roomId: '$rid',
+					},
+				},
+				{ $skip: offset },
+				{ $limit: count },
+			];
+
+			const attachments = await Messages.model.rawCollection().aggregate(pipeline).toArray();
+
+			const formattedAttachments = attachments.map((item) => {
+				const titleLink = item.attachment.title_link || '';
+				return {
+					name: titleLink?.split('/')?.pop(),
+					url: titleLink,
+					dateSent: item.timestamp,
+					author: item.name || 'Unknown',
+					extension: `.${titleLink?.split('.')?.pop()}`,
+					messageId: item.messageId,
+				}
+			});
+			return API.v1.success({attachments: formattedAttachments});
+		},
+	},
+);
+
 API.v1.addRoute(
 	'groups.getIntegrations',
 	{ authRequired: true },
