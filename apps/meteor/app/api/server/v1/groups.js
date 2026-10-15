@@ -672,13 +672,11 @@ API.v1.addRoute(
 
 			const [members, total] = await Promise.all([cursor.toArray(), totalCount]);
 			// Ultatel: Format response to match users endpoint
-			const formattedMembers = members.map((member) => {
-				const {
-					customFields: { extension, avatarUrl },
-					...otherValues
-				} = member;
-				return { ...otherValues, userExtension: extension, userImage: avatarUrl };
-			});
+			      const formattedMembers = members.map((member) => {
+					  const { customFields, ...otherValues } = member;
+					  return { ...otherValues, userExtension: customFields?.extension ?? null, userImage: customFields?.avatarUrl ?? null };    
+				  });      
+			
 			return API.v1.success({
 				members:formattedMembers,
 				count: formattedMembers.length,
