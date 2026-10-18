@@ -122,7 +122,7 @@ export interface IMessage extends IRocketChatRecord {
 
 	groupable?: false;
 	channels?: Pick<IRoom, '_id' | 'name'>[];
-	u: Required<Pick<IUser, '_id' | 'username' | 'name'>>;
+	u: Required<Pick<IUser, '_id' | 'username' | 'name'>> & Partial<Pick<IUser, 'customFields'>>;
 	blocks?: MessageSurfaceLayout;
 	alias?: string;
 	md?: Root;
