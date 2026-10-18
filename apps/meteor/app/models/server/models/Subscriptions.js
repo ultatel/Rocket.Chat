@@ -235,15 +235,15 @@ export class Subscriptions extends Base {
 		const update =
 			hideMentionStatus === true
 				? {
-						$set: {
-							hideMentionStatus,
-						},
-				  }
+					$set: {
+						hideMentionStatus,
+					},
+				}
 				: {
-						$unset: {
-							hideMentionStatus: 1,
-						},
-				  };
+					$unset: {
+						hideMentionStatus: 1,
+					},
+				};
 
 		return this.update(query, update);
 	}
@@ -419,6 +419,15 @@ export class Subscriptions extends Base {
 	}
 
 	cachedFindByUserId = mem(this.findByUserId.bind(this), { maxAge: 5000 });
+
+
+	findGroupsByUserId(userId, options) {
+		const query = { 'u._id': userId, 't': 'p' };
+
+		return this.find(query, options);
+	}
+
+	cachedFindGroupsByUserId = mem(this.findGroupsByUserId.bind(this), { maxAge: 5000 });
 
 	findByUserIdExceptType(userId, typeException, options) {
 		const query = {
