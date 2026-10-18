@@ -77,6 +77,73 @@ API.v1.addRoute(
 	},
 );
 
+// Ultatel: Add A New Endpont to fetch rooms with last message and user details
+API.v1.addRoute(
+	'rooms.list',
+	{ authRequired: true },
+	{
+		async get() {
+			try {
+				let result;
+				Meteor.runAsUser(this.userId, () => {
+					result = Meteor.call('rooms/getDetails');
+				});
+
+				if (Array.isArray(result)) {
+					const allMemebers = result.reduce((acc, room) => {
+						if (room.t != 'p') { return acc; }
+						return acc.concat(room.members || []);
+					}, []);
+					const uniqueMembers = new Map(allMemebers.map((member) => [member._id, member]));
+					result = {
+						update: result.flatMap((room) => {
+							if (room.usernames?.includes('rocket.cat')) return [];
+							const subscription = room.subscriptions?.[0] || {
+								unread: 0,
+								userMentions: 0,
+								groupMentions: 0,
+							};
+							if (room.t == 'd') {
+								const otherPartyMember = room.members?.find((member) => member._id != this.userId);
+								if (otherPartyMember) {
+									room.name = otherPartyMember.name || '';
+									room.UserImage = otherPartyMember.customFields?.avatarUrl || null;
+									room.UserExtension = otherPartyMember.customFields?.extension || null;
+									room.u = {
+										_id: otherPartyMember._id,
+										username: otherPartyMember.username,
+									};
+								}
+							}
+
+							if (room.t == 'p' && room.lastMessage) {
+
+								const lastMessage = room.lastMessage;
+								const lastMessageSender = uniqueMembers.get(lastMessage.u._id);
+								room.lastMessage.u.name = lastMessageSender?.name || lastMessage.u?.name;
+							}
+
+							room.unread = subscription.unread;
+							room.userMentions = subscription.userMentions;
+							room.groupMentions = subscription.groupMentions;
+							delete room.subscriptions;
+							delete room.members;
+							return [room];
+						}),
+						remove: [],
+					};
+				}
+
+				return API.v1.success({
+					data: result.update.map((room) => this.composeRoomWithLastMessage(room, this.userId)),
+				});
+			} catch (error) {
+				return API.v1.failure('Error fetching rooms');
+			}
+		},
+	},
+);
+
 API.v1.addRoute(
 	'rooms.upload/:rid',
 	{ authRequired: true },
@@ -232,7 +299,7 @@ API.v1.addRoute(
 			const room = findRoomByIdOrName({ params: this.requestParams() });
 			const { fields } = this.parseJsonQuery();
 
-			if (!room || !canAccessRoom(room, { _id: this.userId, roles: this.user.roles  })) {
+			if (!room || !canAccessRoom(room, { _id: this.userId, roles: this.user.roles })) {
 				return API.v1.failure('not-allowed', 'Not Allowed');
 			}
 

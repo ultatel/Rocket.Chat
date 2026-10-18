@@ -86,7 +86,7 @@ export class Rooms extends Base {
 
 	unsetReactionsInLastMessage(roomId) {
 		// Ultatel: Remove reactions from the last message instead of unsetting the whole lastMessage object
-    	return this.update({ _id: roomId }, { $unset: { 'lastMessage.reactions': 1 } });
+		return this.update({ _id: roomId }, { $unset: { 'lastMessage.reactions': 1 } });
 	}
 
 	unsetAllImportIds() {
@@ -276,15 +276,15 @@ export class Rooms extends Base {
 		const update =
 			systemMessages && systemMessages.length > 0
 				? {
-						$set: {
-							sysMes: systemMessages,
-						},
-				  }
+					$set: {
+						sysMes: systemMessages,
+					},
+				}
 				: {
-						$unset: {
-							sysMes: '',
-						},
-				  };
+					$unset: {
+						sysMes: '',
+					},
+				};
 
 		return this.update(query, update);
 	};
@@ -435,6 +435,98 @@ export class Rooms extends Base {
 		};
 
 		return this.find(query, options);
+	}
+	// Ultatel: Add a new method to fetch rooms with user details
+	findBySubscriptionUserIdDetails(userId, options) {
+		const data = Subscriptions.cachedFindByUserId(userId, { fields: { rid: 1 } })
+			.fetch()
+			.flatMap((item) => item.t == 'l' ? [] : [item.rid]);
+
+		const query = {
+			_id: {
+				$in: data,
+			},
+
+		};
+
+		const pipeline = [
+			{ $match: query },
+			{
+				$lookup: {
+					from: 'rocketchat_subscription',
+					localField: '_id',
+					foreignField: 'rid',
+					pipeline: [
+						{ $project: { _id: 1, u: 1, rid: 1, unread: 1, userMentions: 1, groupMentions: 1 } },
+					],
+					as: 'subscriptions',
+				},
+			},
+			{
+				$addFields: {
+					memberIds: {
+						$cond: [
+							{ $and: [{ $eq: ['$t', 'd'] }, { $isArray: '$uids' }] },
+							'$uids',
+							{
+								$map: {
+									input: '$subscriptions',
+									as: 's',
+									in: '$$s.u._id',
+								},
+							},
+						],
+					},
+				},
+			},
+			{
+				$lookup: {
+					from: 'users',
+					localField: 'memberIds',
+					foreignField: '_id',
+					pipeline: [
+						{ $project: { _id: 1, username: 1, name: 1, customFields: 1 } },
+					],
+					as: 'members',
+				},
+			},
+			{
+				$project: {
+					...options.fields,
+					name: 1,
+					t: 1,
+					teamId: 1,
+					lastMessage: 1,
+					usernames: 1,
+					customFields: 1,
+					subscriptions: {
+						$filter: {
+							input: '$subscriptions',
+							as: 's',
+							cond: {
+								$and: [
+									{ $eq: ['$$s.u._id', userId] },
+								],
+							},
+						},
+					},
+					members: {
+						$map: {
+							input: '$members',
+							as: 'u',
+							in: {
+								_id: '$$u._id',
+								username: '$$u.username',
+								name: '$$u.name',
+								customFields: '$$u.customFields',
+							},
+						},
+					},
+				},
+			},
+		];
+
+		return Promise.await(this.model.rawCollection().aggregate(pipeline).toArray());
 	}
 
 	findBySubscriptionUserIdUpdatedAfter(userId, _updatedAt, options) {
@@ -869,15 +961,15 @@ export class Rooms extends Base {
 
 		const update = lastMessage
 			? {
-					$set: {
-						lastMessage,
-					},
-			  }
+				$set: {
+					lastMessage,
+				},
+			}
 			: {
-					$unset: {
-						lastMessage: 1,
-					},
-			  };
+				$unset: {
+					lastMessage: 1,
+				},
+			};
 
 		return this.update(query, update);
 	}

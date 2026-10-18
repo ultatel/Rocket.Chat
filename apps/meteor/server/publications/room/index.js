@@ -33,9 +33,23 @@ Meteor.methods({
 			};
 		}
 
-		return Rooms.findBySubscriptionUserId(user, options).fetch();
+		return Rooms.findBySubscriptionUserId(user, options);
 	},
+	// Ultatel: Add a new method to get room details with last message and user details
+	'rooms/getDetails'() {
+		const options = { fields: roomFields };
+		const user = Meteor.userId();
 
+		if (!user) {
+			if (settings.get('Accounts_AllowAnonymousRead')) {
+				return Rooms.findByDefaultAndTypes(true, ['c'], options).fetch();
+			}
+			return [];
+		}
+
+
+		return Rooms.findBySubscriptionUserIdDetails(user, options);
+	},
 	'getRoomByTypeAndName'(type, name) {
 		const userId = Meteor.userId();
 
