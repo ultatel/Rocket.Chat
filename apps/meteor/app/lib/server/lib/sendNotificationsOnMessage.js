@@ -17,6 +17,7 @@ import { notifyDesktopUser, shouldNotifyDesktop } from '../functions/notificatio
 import { Notification } from '../../../notification-queue/server/NotificationQueue';
 import { getMentions } from './notifyUsersOnMessage';
 import { roomCoordinator } from '../../../../server/lib/rooms/roomCoordinator';
+import { isCustomSystemMessage } from '/app/utils/server/functions/isCustomSystemMessage';
 
 let TroubleshootDisableNotifications;
 
@@ -81,6 +82,7 @@ export const sendNotification = async ({
 
 	// busy users don't receive desktop notification
 	if (
+		!isCustomSystemMessage(message) &&
 		shouldNotifyDesktop({
 			disableAllMessageNotifications,
 			status: receiver.status,

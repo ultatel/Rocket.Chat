@@ -11,6 +11,7 @@ import { SystemLogger } from '../../../../server/lib/logger/system';
 import { parseUrlsInMessage } from './parseUrlsInMessage';
 import { isRelativeURL } from '../../../../lib/utils/isRelativeURL';
 import notifications from '../../../notifications/server/lib/Notifications';
+import { isCustomSystemMessage } from '/app/utils/server/functions/isCustomSystemMessage';
 
 /**
  * IMPORTANT
@@ -212,7 +213,8 @@ export const sendMessage = function (user, message, room, upsert = false) {
 	validateMessage(message, room, user);
 	prepareMessageObject(message, room._id, user);
 
-	if (settings.get('Message_Read_Receipt_Enabled')) {
+	// Ultatel: Avoid Update ON Message Read Receipt, if the message is a custom system message
+	if (settings.get('Message_Read_Receipt_Enabled') && !isCustomSystemMessage(message)) {
 		message.unread = true;
 	}
 

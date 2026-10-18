@@ -28,9 +28,11 @@ const updateMessages = debounceByRoomId(
 
 		Messages.setAsRead(_id, firstSubscription.ls);
 
-		if (lm <= firstSubscription.ls) {
-			Rooms.setLastMessageAsRead(_id);
-		}
+		// Ultatel: Commented out to prevent room updates when marking subscriptions as read
+		// This was causing room._updatedAt and lm to change when calling subscription.read
+		// if (lm <= firstSubscription.ls) {
+		// 	Rooms.setLastMessageAsRead(_id);
+		// }
 	}),
 );
 

@@ -5,6 +5,7 @@ import { Base } from './_Base';
 import Rooms from './Rooms';
 import { settings } from '../../../settings/server';
 import { otrSystemMessages } from '../../../otr/lib/constants';
+import { TEMP_USER_PREFIX } from '../../../lib/constants';
 
 export class Messages extends Base {
 	constructor() {
@@ -898,6 +899,11 @@ export class Messages extends Base {
 
 	createUserAddedWithRoomIdAndUser(roomId, user, extraData) {
 		const message = user.username;
+		// Ultatel: add the name of the user in case it's a temp user, so we can show it in the message instead of the username that is not human readable
+		if(user.username.startsWith(TEMP_USER_PREFIX)) {
+			extraData = extraData || {};
+			extraData.addedUser = user.name
+		}
 		return this.createWithTypeRoomIdMessageAndUser('au', roomId, message, user, extraData);
 	}
 
