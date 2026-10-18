@@ -82,9 +82,13 @@ async function setReaction(room, user, message, reaction, shouldReact) {
 		if (!message.reactions[reaction]) {
 			message.reactions[reaction] = {
 				usernames: [],
+				// Ultatel: Add Names array to reactions
+				names: [],
 			};
 		}
 		message.reactions[reaction].usernames.push(user.username);
+		message.reactions[reaction].names.push(user.name);
+
 		Messages.setReactions(message._id, message.reactions);
 		if (isTheLastMessage(room, message)) {
 			Rooms.setReactionsInLastMessage(room._id, message);
